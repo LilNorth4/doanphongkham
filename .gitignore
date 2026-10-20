@@ -1,0 +1,25 @@
+# Bí mật: mật khẩu CSDL, cấu hình MCP có mật khẩu
+.env
+.mcp.json
+
+# Thư viện, file build
+node_modules/
+web/dist/
+target/
+
+# IDE, hệ điều hành
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Ảnh người dùng tải lên khi chạy backend trên máy
+du-lieu-tai-len/
+
+# Cơ sở dữ liệu: script tạo bảng, dữ liệu thử, file SQL (không đưa lên repo)
+backend/src/main/resources/db/
+database/
+*.sql
+
+# Cấu hình riêng của Claude Code trên máy
+.claude/

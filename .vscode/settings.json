@@ -1,0 +1,21 @@
+{
+  "sqltools.connections": [
+    {
+      "name": "phongkham (MySQL 8.0 local)",
+      "driver": "MySQL",
+      "server": "localhost",
+      "port": 3306,
+      "database": "phongkham",
+      "username": "root",
+      "password": "",
+      "askForPassword": false,
+      "connectionTimeout": 15,
+      "mysqlOptions": {
+        "authProtocol": "default"
+      }
+    }
+  ],
+  "sqltools.autoConnectTo": ["phongkham (MySQL 8.0 local)"],
+  "sqltools.useNodeRuntime": true,
+  "java.compile.nullAnalysis.mode": "automatic"
+}

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Xem thử giao diện</title>
+  <!--
+    Trang phục vụ phát triển: xem cùng lúc bản máy tính và bản điện thoại.
+    Mở http://localhost:5173/xem-thu.html khi đang chạy "npm run dev".
+    Không nằm trong bản build (vite build chỉ đóng gói index.html).
+  -->
+  <style>
+    :root {
+      --nen: #e9eeee;
+      --vien: #c9d3d3;
+      --chu: #1f2a2a;
+      --phu: #5b6b6b;
+      --chinh: #0F6E64;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Roboto, sans-serif;
+      color: var(--chu);
+      background: var(--nen);
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+      padding: 10px 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--vien);
+    }
+    header b { color: var(--chinh); }
+    input, select, button {
+      font: inherit;
+      font-size: 14px;
+      padding: 6px 10px;
+      border: 1px solid var(--vien);
+      border-radius: 6px;
+      background: #fff;
+    }
+    input { width: 260px; }
+    button { cursor: pointer; }
+    button.chinh { color: #fff; background: var(--chinh); border-color: var(--chinh); }
+    label { display: flex; gap: 6px; align-items: center; color: var(--phu); font-size: 14px; }
+    main {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+      padding: 20px 16px;
+    }
+    .khung { flex: none; }
+    .khung h2 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--phu);
+    }
+    /* Khung máy tính: render ở độ rộng thật rồi thu nhỏ cho vừa màn hình */
+    .may-tinh { flex: 1; min-width: 0; }
+    .man-may-tinh {
+      overflow: hidden;
+      border: 1px solid var(--vien);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+    .man-may-tinh iframe { transform-origin: 0 0; }
+    /* Khung điện thoại: đúng kích thước CSS của máy, có viền như máy thật */
+    .dien-thoai .vo {
+      padding: 12px;
+      border-radius: 40px;
+      background: #1f2a2a;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+    }
+    .dien-thoai iframe { border-radius: 28px; }
+    iframe { display: block; border: 0; background: #fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <b>Xem thử</b>
+    <input id="duong-dan" value="/dang-nhap" aria-label="Đường dẫn trang" />
+    <button class="chinh" id="mo">Mở</button>
+    <button data-trang="/dang-nhap">Đăng nhập</button>
+    <button data-trang="/dang-ky">Đăng ký</button>
+    <button data-trang="/quen-mat-khau">Quên mật khẩu</button>
+    <button data-trang="/">Trang chủ</button>
+    <label>Điện thoại
+      <select id="may">
+        <option value="390x844">iPhone 14 (390×844)</option>
+        <option value="375x667">iPhone SE (375×667)</option>
+        <option value="360x800">Android (360×800)</option>
+        <option value="768x1024">iPad dọc (768×1024)</option>
+      </select>
+    </label>
+    <label>Máy tính
+      <select id="pc">
+        <option value="1366x768">1366×768</option>
+        <option value="1440x900">1440×900</option>
+        <option value="1920x1080">1920×1080</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="dong-bo" checked style="width:auto" /> Đồng bộ trang</label>
+  </header>
+
+  <main>
+    <section class="khung may-tinh">
+      <h2 id="nhan-pc"></h2>
+      <div class="man-may-tinh" id="man-pc"><iframe id="khung-pc" title="Máy tính"></iframe></div>
+    </section>
+    <section class="khung dien-thoai">
+      <h2 id="nhan-dt"></h2>
+      <div class="vo"><iframe id="khung-dt" title="Điện thoại"></iframe></div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id)
+    const pc = $('khung-pc')
+    const dt = $('khung-dt')
+
+    // Cùng nguồn gốc (localhost:5173) nên hai khung dùng chung phiên đăng nhập
+    function mo(duong) {
+      $('duong-dan').value = duong
+      pc.src = duong
+      dt.src = duong
+    }
+
+    function kichThuoc() {
+      const [rDt, cDt] = $('may').value.split('x').map(Number)
+      const [rPc, cPc] = $('pc').value.split('x').map(Number)
+      dt.width = rDt
+      dt.height = cDt
+      $('nhan-dt').textContent = `Điện thoại ${rDt}×${cDt}`
+
+      // Máy tính: iframe giữ độ rộng thật để @media/breakpoint chạy đúng, chỉ thu nhỏ khi hiển thị
+      const conLai = $('man-pc').parentElement.clientWidth
+      const tiLe = Math.min(1, conLai / rPc)
+      pc.width = rPc
+      pc.height = cPc
+      pc.style.transform = `scale(${tiLe})`
+      $('man-pc').style.width = `${rPc * tiLe}px`
+      $('man-pc').style.height = `${cPc * tiLe}px`
+      $('nhan-pc').textContent = `Máy tính ${rPc}×${cPc}` + (tiLe < 1 ? ` (thu nhỏ ${Math.round(tiLe * 100)}%)` : '')
+    }
+
+    // Bấm chuyển trang trong khung nào thì khung còn lại đi theo
+    let cuoi = { pc: '', dt: '' }
+    function duongCua(f) {
+      // Khung đang tải còn là about:blank: bỏ qua để không đồng bộ nhầm
+      try {
+        const l = f.contentWindow.location
+        return l.origin === location.origin ? l.pathname + l.search : ''
+      } catch { return '' }
+    }
+    setInterval(() => {
+      const a = duongCua(pc)
+      const b = duongCua(dt)
+      if (!a || !b) return
+      if ($('dong-bo').checked) {
+        if (a !== cuoi.pc && a !== b) dt.contentWindow.location.replace(a)
+        else if (b !== cuoi.dt && a !== b) pc.contentWindow.location.replace(b)
+      }
+      cuoi = { pc: a, dt: b }
+      if (document.activeElement !== $('duong-dan')) $('duong-dan').value = a
+    }, 400)
+
+    $('mo').onclick = () => mo($('duong-dan').value || '/')
+    $('duong-dan').onkeydown = (e) => { if (e.key === 'Enter') mo(e.target.value || '/') }
+    document.querySelectorAll('[data-trang]').forEach((n) => { n.onclick = () => mo(n.dataset.trang) })
+    $('may').onchange = kichThuoc
+    $('pc').onchange = kichThuoc
+    addEventListener('resize', kichThuoc)
+
+    kichThuoc()
+    mo(new URLSearchParams(location.search).get('trang') || '/dang-nhap')
+  </script>
+</body>
+</html>

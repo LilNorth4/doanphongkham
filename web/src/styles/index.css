@@ -1,0 +1,626 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+
+/* Bảng màu trùng với styles/theme.ts */
+:root {
+  --chinh: #0f6e64;
+  --chinh-nhat: #e3f1ee;
+  --nhan: #2bb3a0;
+  --toi: #0e3b36;
+  --toi-vien: #275e57;
+  --toi-chu: #cfe6e1;
+  --toi-phu: #a9cfc8;
+  --nen: #f3f6f5;
+  --vien: #dce4e2;
+  --chu: #12211e;
+  --chu-phu: #52615d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Row có gutter của antd dùng lề âm, trên màn hẹp làm cả trang cuộn ngang; bảng rộng vẫn tự cuộn bên trong */
+html,
+body {
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  background: var(--nen);
+  color: var(--chu);
+}
+
+/* ---------- Logo ---------- */
+.logo-khoi {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: #fff;
+}
+
+a.logo-khoi,
+a.logo-khoi:hover {
+  color: #fff;
+  text-decoration: none;
+}
+
+.logo-o {
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--nhan);
+  color: var(--toi);
+}
+
+.logo-chu {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.logo-chu strong {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logo-chu small {
+  font-size: 12px;
+  color: var(--toi-phu);
+}
+
+/* ---------- Khung ứng dụng ---------- */
+.sider-co-dinh {
+  position: sticky !important;
+  top: 0;
+  height: 100dvh;
+}
+
+.thanh-ben {
+  height: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 0 16px;
+  background: var(--toi);
+}
+
+.thanh-ben > .logo-khoi {
+  padding: 0 20px;
+}
+
+.thanh-ben-menu {
+  flex: 1;
+  overflow-y: auto;
+  border-inline-end: 0 !important;
+}
+
+.thanh-ben-menu .ant-menu-item-group-title {
+  padding: 14px 24px 4px !important;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #9cc4bd !important;
+}
+
+.menu-nhan {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.thanh-ben-toi {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 12px;
+  padding: 14px 8px 0;
+  border: 0;
+  border-top: 1px solid var(--toi-vien);
+  background: none;
+  color: var(--toi-chu);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.thanh-ben-toi-ten {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.thanh-ben-toi-ten strong {
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thanh-ben-toi-ten small {
+  font-size: 12px;
+  color: var(--toi-phu);
+}
+
+.anh-dai-dien {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--nhan);
+  color: var(--toi);
+  font-size: 13px;
+  font-weight: 700;
+  object-fit: cover;
+}
+
+/* Trang hồ sơ: ảnh lớn, nút máy ảnh góc dưới để đổi ảnh */
+.ho-so-anh {
+  position: relative;
+  display: flex;
+  padding: 4px;
+  border-radius: 50%;
+  outline: 2px solid var(--nhan);
+}
+
+/* Khối Upload bọc nút máy ảnh nằm đè góc ảnh, không chiếm chỗ */
+.ho-so-anh .ant-upload-wrapper {
+  position: absolute;
+  right: 0;
+  bottom: 4px;
+}
+
+.ho-so-doi-anh {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.dau-trang {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 60px;
+  padding: 0 28px;
+  line-height: normal;
+  background: #fff;
+  border-bottom: 1px solid var(--vien);
+}
+
+.dau-trang-ngay {
+  font-size: 13px;
+  color: var(--chu-phu);
+}
+
+/* Điện thoại: đầu trang nền tối như thanh bên */
+.dau-trang-nho {
+  height: 56px;
+  padding: 0 8px 0 4px;
+  background: var(--toi);
+  border-bottom: 0;
+}
+
+.dau-trang-nho .ant-btn-text {
+  color: #fff;
+}
+
+.noi-dung {
+  padding: 24px 28px 32px;
+  min-width: 0;
+}
+
+@media (max-width: 991.98px) {
+  .noi-dung {
+    padding: 12px;
+  }
+}
+
+/* ---------- Thành phần antd theo mẫu ---------- */
+/* Nhãn trạng thái dạng viên thuốc, không viền */
+.ant-tag {
+  border: 0;
+  border-radius: 999px;
+  padding-inline: 9px;
+  font-weight: 600;
+}
+
+/* Nhãn trạng thái dùng đúng bảng màu nhãn của mẫu */
+.ant-tag.ant-tag-success {
+  background: #e6f4ec;
+  color: #1e5e3e;
+}
+
+.ant-tag.ant-tag-warning {
+  background: #fef3e2;
+  color: #8a3d06;
+}
+
+.ant-tag.ant-tag-error {
+  background: #fdecea;
+  color: #9b1c12;
+}
+
+.ant-tag.ant-tag-processing {
+  background: var(--chinh-nhat);
+  color: #0b5a52;
+}
+
+.ant-card {
+  border-color: var(--vien);
+}
+
+.ant-card .ant-card-head {
+  border-bottom-color: var(--vien);
+}
+
+.ant-table-thead > tr > th {
+  font-size: 12px;
+  font-weight: 700 !important;
+  border-bottom-color: var(--vien) !important;
+}
+
+.ant-typography h4,
+h4.ant-typography {
+  font-weight: 700;
+}
+
+/* ---------- Trang đăng nhập / đăng ký ---------- */
+.auth-trang {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 100vh;
+  min-height: 100dvh; /* điện thoại: không tính phần thanh địa chỉ co giãn */
+  background: var(--nen);
+}
+
+.auth-gioi-thieu {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 56px 64px;
+  color: #fff;
+  /* Ảnh phòng khám phủ màu tối của thương hiệu để chữ trắng vẫn đọc rõ */
+  background: linear-gradient(160deg, rgba(14, 59, 54, 0.95) 0%, rgba(14, 59, 54, 0.82) 55%, rgba(14, 59, 54, 0.6) 100%),
+    var(--anh-nen, none) center / cover no-repeat, var(--toi);
+}
+
+.auth-gioi-thieu-chinh {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-width: 520px;
+}
+
+.auth-gioi-thieu h1 {
+  margin: 0;
+  font-size: 42px;
+  line-height: 1.15;
+  font-weight: 700;
+}
+
+.auth-gioi-thieu p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--toi-chu);
+}
+
+.auth-gioi-thieu small {
+  font-size: 13px;
+  color: var(--toi-phu);
+}
+
+/* Dải thương hiệu chỉ hiện trên điện thoại */
+.auth-dau-mobile {
+  display: none;
+}
+
+.auth-noi-dung {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+}
+
+.auth-the {
+  width: 100%;
+  max-width: 420px;
+  padding: 36px;
+  background: #fff;
+  border: 1px solid var(--vien);
+  border-radius: 20px;
+}
+
+.auth-the-rong {
+  max-width: 600px;
+}
+
+.auth-tieu-de {
+  margin-bottom: 20px;
+}
+
+.auth-tieu-de h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.auth-tieu-de p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--chu-phu);
+}
+
+/* Khớp mốc lg (992px) của Ant Design, xem useManHinhNho() */
+@media (max-width: 991.98px) {
+  .auth-trang {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .auth-gioi-thieu {
+    display: none;
+  }
+
+  .auth-dau-mobile {
+    display: block;
+    padding: calc(24px + env(safe-area-inset-top)) 20px 52px;
+    background: linear-gradient(rgba(14, 59, 54, 0.9), rgba(14, 59, 54, 0.9)), var(--anh-nen, none) center / cover no-repeat,
+      var(--toi);
+  }
+
+  /* Thẻ biểu mẫu trắng đè lên dải tối, bo góc trên như giao diện app */
+  .auth-noi-dung {
+    align-items: stretch;
+    margin-top: -28px;
+    padding: 0;
+  }
+
+  .auth-the,
+  .auth-the-rong {
+    max-width: none;
+    padding: 24px 20px calc(32px + env(safe-area-inset-bottom));
+    border: 0;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .auth-tieu-de h1 {
+    font-size: 22px;
+  }
+}
+
+/* ---------- Lịch chọn ngày khám ---------- */
+/* Bỏ nền xám kéo dài của các ngày không chọn được, chỉ làm mờ số ngày */
+.ant-picker-calendar .ant-picker-cell-disabled::before {
+  background: transparent !important;
+}
+
+/* ---------- Điện thoại: thanh nút dính đáy màn hình (VD Quay lại / Tiếp tục khi đặt lịch) ---------- */
+.thanh-duoi-mobile {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin: 24px -16px -16px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1px solid var(--vien);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* Trang chủ: banner ảnh phủ màu tối bên trái để chữ trắng dễ đọc */
+.banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 280px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--toi);
+}
+
+/* Các ảnh xếp chồng, ảnh đang hiện mờ dần lên */
+.banner-anh {
+  position: absolute;
+  inset: 0;
+  background: center / cover no-repeat;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.banner-anh.hien {
+  opacity: 1;
+}
+
+.banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(90deg, rgba(14, 59, 54, 0.94) 0%, rgba(14, 59, 54, 0.78) 45%, rgba(14, 59, 54, 0.1) 100%);
+}
+
+.banner-chu {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 620px;
+  padding: 40px 72px 48px;
+  color: #fff;
+}
+
+.banner-nhan {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--toi);
+  background: var(--nhan);
+}
+
+.banner h2 {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.banner p {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--toi-chu);
+}
+
+/* Mũi tên tròn kính mờ hai bên và chấm chỉ vị trí ảnh */
+.banner-mui-ten {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: background 0.2s;
+}
+
+.banner-mui-ten:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.banner-mui-ten.trai {
+  left: 12px;
+}
+
+.banner-mui-ten.phai {
+  right: 12px;
+}
+
+.banner-cham {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+  transform: translateX(-50%);
+}
+
+.banner-cham button {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: width 0.3s, background 0.3s;
+}
+
+.banner-cham button.hien {
+  width: 24px;
+  background: #fff;
+}
+
+/* Thẻ "Vì sao chọn chúng tôi": ảnh tròn viền màu nhấn, chú thích bên dưới */
+.ly-do {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.ly-do img {
+  width: 132px;
+  height: 132px;
+  margin-bottom: 8px;
+  border-radius: 50%;
+  border: 4px solid var(--chinh-nhat);
+  outline: 2px solid var(--nhan);
+  object-fit: cover;
+  background: var(--chinh-nhat);
+}
+
+.lien-he {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 24px 28px;
+  border-radius: 16px;
+  color: var(--toi-chu);
+  background: var(--toi);
+}
+
+.lien-he strong {
+  font-size: 16px;
+  color: #fff;
+}
+
+/* Ảnh đầu thẻ chuyên khoa */
+.the-anh {
+  height: 150px;
+  object-fit: cover;
+}
+
+@media (max-width: 767px) {
+  .banner {
+    min-height: 0;
+  }
+
+  .banner::before {
+    background: linear-gradient(180deg, rgba(14, 59, 54, 0.55) 0%, rgba(14, 59, 54, 0.95) 70%);
+  }
+
+  .banner-chu {
+    padding: 132px 20px 40px;
+  }
+
+  /* Điện thoại: mũi tên lên vùng ảnh phía trên để không đè chữ */
+  .banner-mui-ten {
+    top: 56px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .banner h2 {
+    font-size: 24px;
+  }
+
+  .ly-do img {
+    width: 96px;
+    height: 96px;
+  }
+
+  .lien-he {
+    padding: 20px;
+  }
+}
