@@ -1,8 +1,8 @@
 import type { FormRule } from 'antd'
 import dayjs from 'dayjs'
 import type {
-  CaLam, DangKyCho, KenhDat, LichHen, TrangThaiDangKyCa, TrangThaiKhungGio, TrangThaiLichHen, TrangThaiTaiKhoan, VaiTro,
-  VaiTroNhanVien,
+  CaLam, DangKyCho, KenhDat, LichHen, LoaiDichVu, LoaiDiem, LoaiPhong, PhieuChiDinh, TrangThaiDangKyCa, TrangThaiKhungGio, TrangThaiLichHen,
+  TrangThaiPhieuCls, TrangThaiTaiKhoan, VaiTro, VaiTroNhanVien,
 } from '@/lib/api'
 
 export const TEN_PHONG_KHAM = 'Phòng khám Đa khoa Việt Bắc'
@@ -209,6 +209,49 @@ export const TEN_HANH_DONG: Record<string, { ten: string; mau: string }> = {
   CHECK_IN: { ten: 'Check-in', mau: 'cyan' },
   DANH_DAU_VANG_MAT: { ten: 'Đánh dấu vắng mặt', mau: 'orange' },
   TAO_HO_SO_BENH_NHAN: { ten: 'Tạo hồ sơ bệnh nhân', mau: 'green' },
+  BO_QUA_LUOT_KHAM: { ten: 'Bỏ qua lượt khám', mau: 'orange' },
+  CHI_DINH_CLS: { ten: 'Chỉ định cận lâm sàng', mau: 'purple' },
+  HUY_CHI_DINH_CLS: { ten: 'Hủy chỉ định CLS', mau: 'red' },
+  HOAN_TAT_KHAM: { ten: 'Hoàn tất khám', mau: 'green' },
+  THEM_DANH_MUC: { ten: 'Thêm danh mục', mau: 'green' },
+  SUA_DANH_MUC: { ten: 'Sửa danh mục', mau: 'cyan' },
+  NGUNG_DANH_MUC: { ten: 'Ngừng danh mục', mau: 'orange' },
+  MO_DANH_MUC: { ten: 'Mở lại danh mục', mau: 'lime' },
+  XOA_DANH_MUC: { ten: 'Xóa trên sơ đồ', mau: 'red' },
+}
+
+// ---------- Danh mục, mặt bằng (gói 3) ----------
+export const TEN_LOAI_PHONG: Record<LoaiPhong, string> = {
+  KHAM_BENH: 'Khám bệnh', XET_NGHIEM: 'Xét nghiệm', X_QUANG: 'X-quang', SIEU_AM: 'Siêu âm', NOI_SOI: 'Nội soi',
+}
+
+/** BR11: loại dịch vụ CLS chỉ làm ở loại phòng tương ứng (khớp DanhMucService.PHONG_CUA_DICH_VU). */
+export const PHONG_CUA_DICH_VU: Record<Exclude<LoaiDichVu, 'KHAM'>, LoaiPhong[]> = {
+  XET_NGHIEM: ['XET_NGHIEM'], CDHA: ['X_QUANG', 'SIEU_AM'], NOI_SOI: ['NOI_SOI'],
+}
+
+export const TEN_LOAI_DIEM: Record<LoaiDiem, { ten: string; mau: string }> = {
+  PHONG: { ten: 'Cửa phòng', mau: '#1677ff' },
+  HANH_LANG: { ten: 'Hành lang', mau: '#8c8c8c' },
+  NGA_RE: { ten: 'Ngã rẽ', mau: '#bfbfbf' },
+  CAU_THANG: { ten: 'Cầu thang bộ', mau: '#fa8c16' },
+  THANG_MAY: { ten: 'Thang máy', mau: '#722ed1' },
+  QUAY_TIEP_DON: { ten: 'Quầy tiếp đón', mau: '#13c2c2' },
+  QUAY_THU_NGAN: { ten: 'Quầy thu ngân', mau: '#eb2f96' },
+  SANH: { ten: 'Sảnh', mau: '#52c41a' },
+}
+
+// ---------- Khám bệnh (gói 8) ----------
+export const TRANG_THAI_PHIEU_CLS: Record<TrangThaiPhieuCls, { ten: string; mau: string }> = {
+  CHO_THANH_TOAN: { ten: 'Chờ thanh toán', mau: 'gold' },
+  CHO_THUC_HIEN: { ten: 'Chờ thực hiện', mau: 'blue' },
+  DANG_THUC_HIEN: { ten: 'Đang thực hiện', mau: 'geekblue' },
+  CO_KET_QUA: { ten: 'Có kết quả', mau: 'green' },
+  DA_HUY: { ten: 'Đã hủy', mau: 'default' },
+}
+
+export const TEN_LOAI_DV: Record<PhieuChiDinh['LoaiDV'], string> = {
+  XET_NGHIEM: 'Xét nghiệm', CDHA: 'Chẩn đoán hình ảnh', NOI_SOI: 'Nội soi',
 }
 
 export const TEN_THAO_TAC_HO_SO: Record<string, string> = {

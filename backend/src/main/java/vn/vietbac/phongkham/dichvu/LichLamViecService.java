@@ -87,7 +87,7 @@ public class LichLamViecService {
     @Transactional(readOnly = true)
     public Map<String, Object> chiTietCa(Integer maCa) {
         Map<String, Object> ca = tv.mot("""
-                SELECT ca.MaCa, ca.MaBS, bs.HoTen AS BacSi, ck.TenCK, ca.NgayLam, ca.CaLam, ca.MaPhong, p.MaSoPhong,
+                SELECT ca.MaCa, ca.MaBS, bs.HoTen AS BacSi, ck.MaCK, ck.TenCK, ca.NgayLam, ca.CaLam, ca.MaPhong, p.MaSoPhong,
                        p.TenPhong, ca.ThoiLuongKhungGio, ca.MaDK
                 FROM CaLamViec ca JOIN NhanVien bs ON bs.MaNV = ca.MaBS JOIN ChuyenKhoa ck ON ck.MaCK = bs.MaCK
                 JOIN Phong p ON p.MaPhong = ca.MaPhong WHERE ca.MaCa = ?""", maCa);
@@ -104,6 +104,12 @@ public class LichLamViecService {
                 LEFT JOIN BenhNhan bn ON bn.MaBN = lk.MaBN
                 WHERE kg.MaCa = ? ORDER BY kg.GioBatDau""", maCa));
         return ca;
+    }
+
+    /** Chuyên khoa của nhân viên (null nếu không thuộc chuyên khoa nào). */
+    @Transactional(readOnly = true)
+    public Integer chuyenKhoaCua(Integer maNV) {
+        return tv.giaTri("SELECT MaCK FROM NhanVien WHERE MaNV = ?", maNV);
     }
 
     /** Phòng khám bệnh đúng chuyên khoa của bác sĩ; có ngày và ca thì kèm bác sĩ đang dùng phòng lúc đó. */

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.RequiredArgsConstructor;
+import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.dichvu.LichLamViecService;
 import vn.vietbac.phongkham.dichvu.LichLamViecService.YeuCauTaoCa;
 import vn.vietbac.phongkham.xacthuc.CanQuyen;
@@ -58,14 +59,28 @@ public class LichLamViecController {
             @RequestParam("tu_ngay") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay,
             @RequestParam("den_ngay") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate denNgay,
             @RequestParam(value = "ma_bs", required = false) Integer maBS,
-            @RequestParam(value = "ma_ck", required = false) Integer maCK) {
-        return lichLV.dsCa(tuNgay, denNgay, maBS, maCK);
+            @RequestParam(value = "ma_ck", required = false) Integer maCK, NguoiDung nd) {
+        Integer khoa = khoaCuaBacSi(nd);
+        return lichLV.dsCa(tuNgay, denNgay, maBS, khoa != null ? khoa : maCK);
     }
 
     @GetMapping("/ca/{maCa}")
     @CanQuyen("LICH_LV.XEM")
-    public Map<String, Object> chiTietCa(@PathVariable Integer maCa) {
-        return lichLV.chiTietCa(maCa);
+    public Map<String, Object> chiTietCa(@PathVariable Integer maCa, NguoiDung nd) {
+        Map<String, Object> ca = lichLV.chiTietCa(maCa);
+        Integer khoa = khoaCuaBacSi(nd);
+        if (khoa != null && !khoa.equals(ca.get("MaCK"))) {
+            throw new LoiQuyen("Bạn chỉ xem được lịch của bác sĩ cùng chuyên khoa");
+        }
+        return ca;
+    }
+
+    /** Bác sĩ (không quản lý lịch) chỉ xem ca trong chuyên khoa của mình; lễ tân, quản trị viên xem tất cả. */
+    private Integer khoaCuaBacSi(NguoiDung nd) {
+        if (!"BAC_SI".equals(nd.vaiTro()) || nd.co(QUAN_LY) || nd.maNV() == null) {
+            return null;
+        }
+        return lichLV.chuyenKhoaCua(nd.maNV());
     }
 
     // ---------- Quản trị viên xếp ca ----------

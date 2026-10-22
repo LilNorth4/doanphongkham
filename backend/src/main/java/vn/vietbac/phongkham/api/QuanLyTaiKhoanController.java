@@ -185,7 +185,7 @@ public class QuanLyTaiKhoanController {
 
     @GetMapping("/danh-muc/chuyen-khoa")
     public List<Map<String, Object>> chuyenKhoa(NguoiDung nd) {
-        return tv.ds("SELECT MaCK, TenCK, MoTa, PhiKhamCoBan FROM ChuyenKhoa WHERE TrangThai = 'HOAT_DONG' ORDER BY MaCK");
+        return tv.ds("SELECT MaCK, TenCK, MoTa, AnhDaiDien, PhiKhamCoBan FROM ChuyenKhoa WHERE TrangThai = 'HOAT_DONG' ORDER BY MaCK");
     }
 
     @GetMapping("/danh-muc/phong")

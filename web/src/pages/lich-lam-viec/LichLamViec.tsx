@@ -55,12 +55,15 @@ export default function LichLamViec() {
   const [maCa, setMaCa] = useState<number | null>(null)
   const [taoCa, setTaoCa] = useState<MacDinhTaoCa | null>(null)
   const quanLy = !!nguoiDung?.Quyen.includes('LICH_LV.QUAN_LY')
+  // Bác sĩ chỉ xem lịch của bác sĩ cùng chuyên khoa (backend cũng giới hạn như vậy)
+  const cungKhoa = laBacSi && !quanLy
 
   // Ổn định để ngăn chi tiết không tải lại ca mỗi lần trang render
   const dongCa = useCallback(() => setMaCa(null), [])
   const ngays = useMemo(() => Array.from({ length: 6 }, (_, i) => tuan.add(i, 'day')), [tuan])
 
   const tai = useCallback(async () => {
+    if (cungKhoa && !cuaToi && maCk == null) return
     setDangTai(true)
     try {
       const [bs, ca] = await Promise.all([
@@ -77,10 +80,14 @@ export default function LichLamViec() {
     } finally {
       setDangTai(false)
     }
-  }, [tuan, maCk, cuaToi, nguoiDung?.MaNV, message])
+  }, [tuan, maCk, cuaToi, cungKhoa, nguoiDung?.MaNV, message])
 
   useEffect(() => { tai() }, [tai])
   useEffect(() => { api.dsChuyenKhoa().then(setDsCk).catch(() => {}) }, [])
+  useEffect(() => {
+    if (!cungKhoa) return
+    api.dsBacSi().then((d) => setMaCk(d.find((b) => b.MaBS === nguoiDung?.MaNV)?.MaCK)).catch(() => {})
+  }, [cungKhoa, nguoiDung?.MaNV])
 
   // Mở từ thông báo: /lich-lam-viec?ca=123 -> nhảy tới tuần của ca và mở chi tiết
   useEffect(() => {
@@ -174,9 +181,9 @@ export default function LichLamViec() {
         )}
         {laBacSi && (
           <Segmented value={cuaToi ? 'toi' : 'tat-ca'} onChange={(v) => setCuaToi(v === 'toi')}
-            options={[{ value: 'toi', label: 'Lịch của tôi' }, { value: 'tat-ca', label: 'Tất cả' }]} />
+            options={[{ value: 'toi', label: 'Lịch của tôi' }, { value: 'tat-ca', label: cungKhoa ? 'Cùng khoa' : 'Tất cả' }]} />
         )}
-        {!cuaToi && (
+        {!cuaToi && !cungKhoa && (
           <Select allowClear placeholder="Tất cả chuyên khoa" style={{ width: 200 }} value={maCk} onChange={setMaCk}
             options={dsCk.map((c) => ({ value: c.MaCK, label: c.TenCK }))} />
         )}

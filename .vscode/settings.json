@@ -17,5 +17,7 @@
   ],
   "sqltools.autoConnectTo": ["phongkham (MySQL 8.0 local)"],
   "sqltools.useNodeRuntime": true,
-  "java.compile.nullAnalysis.mode": "automatic"
+  "java.compile.nullAnalysis.mode": "automatic",
+  // Không để VS Code tự biên dịch vào backend/target/classes (thiếu Lombok, ghi đè class của Maven)
+  "java.autobuild.enabled": false
 }

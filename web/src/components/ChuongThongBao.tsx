@@ -36,7 +36,9 @@ export default function ChuongThongBao() {
       return nguoiDung?.Quyen.includes('LICH_LV.QUAN_LY') ? '/lich-lam-viec/duyet' : '/lich-lam-viec/dang-ky'
     }
     if (tb.LoaiDoiTuong === 'LUOT_KHAM') {
-      if (laBenhNhan) return '/lich-hen-cua-toi'
+      if (laBenhNhan) {
+        return tb.LoaiSuKien === 'HOAN_TAT_KHAM' && tb.MaDoiTuong ? `/ho-so-suc-khoe?luot=${tb.MaDoiTuong}` : '/lich-hen-cua-toi'
+      }
       if (nguoiDung?.Quyen.includes('LICH_HEN.DUYET')) return '/le-tan/lich-hen'
       if (nguoiDung?.Quyen.includes('KHAM.THUC_HIEN')) return '/bac-si/lich-kham'
     }

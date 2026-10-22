@@ -1,5 +1,5 @@
 import {
-  ArrowRightOutlined, CalendarOutlined, CheckCircleTwoTone, ClockCircleOutlined, FileSearchOutlined, FormOutlined, GlobalOutlined,
+  AppstoreOutlined, ArrowRightOutlined, CalendarOutlined, ClusterOutlined, CheckCircleTwoTone, ClockCircleOutlined, FileProtectOutlined, FileSearchOutlined, FormOutlined, GlobalOutlined,
   PhoneOutlined, SafetyCertificateOutlined, ScheduleOutlined, SolutionOutlined, TeamOutlined,
 } from '@ant-design/icons'
 import { Button, Card, Col, Empty, Flex, Row, Typography, theme } from 'antd'
@@ -46,11 +46,14 @@ function loiChao() {
 const LOI_TAT = [
   { quyen: 'LICH_HEN.DAT', duong: '/dat-lich', icon: <CalendarOutlined />, ten: 'Đặt lịch khám', moTa: 'Chọn chuyên khoa, bác sĩ, giờ khám' },
   { quyen: 'LICH_HEN.DAT', duong: '/lich-hen-cua-toi', icon: <ScheduleOutlined />, ten: 'Lịch hẹn của tôi', moTa: 'Xem, đổi, hủy lịch và danh sách chờ' },
+  { quyen: 'HO_SO.XEM_CUA_MINH', duong: '/ho-so-suc-khoe', icon: <FileProtectOutlined />, ten: 'Hồ sơ sức khỏe', moTa: 'Chẩn đoán, đơn thuốc, kết quả xét nghiệm' },
   { quyen: 'LICH_HEN.DUYET', duong: '/le-tan/lich-hen', icon: <SolutionOutlined />, ten: 'Quản lý lịch hẹn', moTa: 'Duyệt lịch, check-in bệnh nhân' },
   { quyen: 'LICH_HEN.DUYET', duong: '/le-tan/dat-lich', icon: <PhoneOutlined />, ten: 'Đặt lịch hộ', moTa: 'Điện thoại, tin nhắn, vãng lai' },
-  { quyen: 'KHAM.THUC_HIEN', duong: '/bac-si/lich-kham', icon: <FormOutlined />, ten: 'Lịch khám', moTa: 'Bệnh nhân hẹn khám hôm nay' },
+  { quyen: 'KHAM.THUC_HIEN', duong: '/bac-si/lich-kham', icon: <FormOutlined />, ten: 'Lịch khám', moTa: 'Gọi bệnh nhân, khám, kê đơn, chỉ định CLS' },
   { quyen: 'TAI_KHOAN.QUAN_LY', duong: '/quan-ly/tai-khoan', icon: <TeamOutlined />, ten: 'Quản lý tài khoản', moTa: 'Nhân viên, bệnh nhân, khóa, mật khẩu' },
   { quyen: 'VAI_TRO.QUAN_LY', duong: '/quan-ly/phan-quyen', icon: <SafetyCertificateOutlined />, ten: 'Phân quyền', moTa: 'Quyền của từng vai trò' },
+  { quyen: 'DANH_MUC.QUAN_LY', duong: '/quan-ly/danh-muc', icon: <AppstoreOutlined />, ten: 'Danh mục', moTa: 'Chuyên khoa, phòng, dịch vụ, thuốc, ICD' },
+  { quyen: 'MAT_BANG.QUAN_LY', duong: '/quan-ly/mat-bang', icon: <ClusterOutlined />, ten: 'Sơ đồ mặt bằng', moTa: 'Vị trí phòng, đường đi, chỉ đường' },
   { quyen: 'NHAT_KY.XEM', duong: '/quan-ly/nhat-ky', icon: <FileSearchOutlined />, ten: 'Nhật ký hệ thống', moTa: 'Thao tác quản trị, truy cập hồ sơ' },
 ]
 

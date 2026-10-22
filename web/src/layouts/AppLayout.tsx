@@ -1,5 +1,5 @@
 import {
-  AuditOutlined, CalendarOutlined, CarryOutOutlined, EyeOutlined, FileSearchOutlined, FormOutlined, HomeOutlined, KeyOutlined,
+  AppstoreOutlined, AuditOutlined, CalendarOutlined, ClusterOutlined, FileProtectOutlined, CarryOutOutlined, EyeOutlined, FileSearchOutlined, FormOutlined, HomeOutlined, KeyOutlined,
   LogoutOutlined, MenuOutlined, MonitorOutlined, MoreOutlined, PhoneOutlined, SafetyCertificateOutlined, ScheduleOutlined, SolutionOutlined,
   TableOutlined, TeamOutlined, UserOutlined,
 } from '@ant-design/icons'
@@ -75,6 +75,7 @@ export default function AppLayout() {
     ...nhom('KHÁM BỆNH', [
       co('LICH_HEN.DAT') && { key: '/dat-lich', icon: <CalendarOutlined />, label: 'Đặt lịch khám' },
       co('LICH_HEN.DAT') && { key: '/lich-hen-cua-toi', icon: <ScheduleOutlined />, label: 'Lịch hẹn của tôi' },
+      co('HO_SO.XEM_CUA_MINH') && { key: '/ho-so-suc-khoe', icon: <FileProtectOutlined />, label: 'Hồ sơ sức khỏe' },
       laLeTan && { key: '/le-tan/lich-hen', icon: <SolutionOutlined />, label: nhanSo('Quản lý lịch hẹn', soCho) },
       laLeTan && { key: '/le-tan/dat-lich', icon: <PhoneOutlined />, label: 'Đặt lịch hộ' },
       co('KHAM.THUC_HIEN') && { key: '/bac-si/lich-kham', icon: <FormOutlined />, label: 'Lịch khám' },
@@ -91,6 +92,8 @@ export default function AppLayout() {
     ...nhom('QUẢN TRỊ', [
       co('TAI_KHOAN.QUAN_LY') && { key: '/quan-ly/tai-khoan', icon: <TeamOutlined />, label: 'Quản lý tài khoản' },
       co('VAI_TRO.QUAN_LY') && { key: '/quan-ly/phan-quyen', icon: <SafetyCertificateOutlined />, label: 'Phân quyền' },
+      co('DANH_MUC.QUAN_LY') && { key: '/quan-ly/danh-muc', icon: <AppstoreOutlined />, label: 'Danh mục' },
+      co('MAT_BANG.QUAN_LY') && { key: '/quan-ly/mat-bang', icon: <ClusterOutlined />, label: 'Sơ đồ mặt bằng' },
       co('NHAT_KY.XEM') && { key: '/quan-ly/nhat-ky', icon: <FileSearchOutlined />, label: 'Nhật ký hệ thống' },
     ]),
   ], [co, duyetCa, laLeTan, soCho, soDangKyCa])

@@ -32,4 +32,6 @@ export const ANH = {
   chuyenKhoaMacDinh: unsplash('photo-1584982751601-97dcc096659c', 800),
 }
 
-export const anhChuyenKhoa = (maCk: number) => ANH.chuyenKhoa[maCk] ?? ANH.chuyenKhoaMacDinh
+/** Ảnh quản trị viên tải lên (ChuyenKhoa.AnhDaiDien) được ưu tiên hơn ảnh minh họa có sẵn. */
+export const anhChuyenKhoa = (maCk: number, anhTaiLen?: string | null) =>
+  anhTaiLen || ANH.chuyenKhoa[maCk] || ANH.chuyenKhoaMacDinh

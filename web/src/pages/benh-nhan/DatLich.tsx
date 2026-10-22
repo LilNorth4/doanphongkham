@@ -138,7 +138,7 @@ export default function DatLich() {
         <Row gutter={[16, 16]}>
           {dsCk.map((c) => (
             <Col xs={24} sm={12} lg={8} key={c.MaCK}>
-              <TheChon chon={ck?.MaCK === c.MaCK} anh={anhChuyenKhoa(c.MaCK)}
+              <TheChon chon={ck?.MaCK === c.MaCK} anh={anhChuyenKhoa(c.MaCK, c.AnhDaiDien)}
                 onClick={() => { setCk(c); setMaBs(null); setKg(null); setBuoc(1) }}>
                 <Typography.Title level={5} style={{ marginTop: 0 }}>{c.TenCK}</Typography.Title>
                 <Typography.Paragraph type="secondary" ellipsis={{ rows: 2 }} style={{ minHeight: 44 }}>

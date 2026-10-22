@@ -1,7 +1,8 @@
-import { LeftOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons'
+import { FileTextOutlined, LeftOutlined, ReloadOutlined, RightOutlined, SoundOutlined } from '@ant-design/icons'
 import { App, Button, Card, Col, DatePicker, Flex, Row, Select, Space, Statistic, Tag, Typography, type TableProps } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import BangThichUng from '@/components/BangThichUng'
 import { useManHinhNho } from '@/hooks/manHinh'
 import { usePhien } from '@/lib/auth'
@@ -9,6 +10,8 @@ import { api, LoiApi, type BacSi, type LichHen } from '@/lib/api'
 import { TRANG_THAI_LICH_HEN, tuoi } from '@/lib/hangSo'
 
 const DA_DEN = ['DA_CHECK_IN', 'DANG_KHAM', 'CHO_CLS', 'DA_CO_KET_QUA', 'HOAN_THANH']
+// Đã có hồ sơ bệnh án (tạo khi gọi vào khám lần đầu)
+const CO_HO_SO = ['DANG_KHAM', 'CHO_CLS', 'DA_CO_KET_QUA', 'HOAN_THANH']
 
 /**
  * Bác sĩ xem lịch hẹn của mình theo ngày: ai đã đến, ai đang chờ, lý do khám.
@@ -16,7 +19,8 @@ const DA_DEN = ['DA_CHECK_IN', 'DANG_KHAM', 'CHO_CLS', 'DA_CO_KET_QUA', 'HOAN_TH
  */
 export default function LichKham() {
   const nho = useManHinhNho()
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
+  const navigate = useNavigate()
   const quyen = usePhien().nguoiDung?.Quyen ?? []
   const giamSat = quyen.includes('KHAM.XEM')
   const laBacSi = quyen.includes('KHAM.THUC_HIEN')
@@ -52,6 +56,49 @@ export default function LichKham() {
     const id = setInterval(tai, 60_000)
     return () => clearInterval(id)
   }, [tai])
+
+  // Bác sĩ thao tác trên hàng chờ của chính mình trong ngày hôm nay; người giám sát chỉ mở xem hồ sơ
+  const thaoTac = laBacSi && !maBs && ngay.isSame(dayjs(), 'day')
+  const dangKhamAi = ds.find((l) => l.TrangThai === 'DANG_KHAM')
+
+  const goi = async (l: LichHen) => {
+    try {
+      await api.goiKham(l.MaLK)
+      navigate(`/bac-si/kham/${l.MaLK}`)
+    } catch (e) {
+      message.error(e instanceof LoiApi ? e.message : 'Không gọi được bệnh nhân')
+    }
+  }
+
+  /** Gọi người đứng đầu hàng chờ (theo thứ tự check-in, đã tính người bị bỏ qua và người quay lại sau CLS). */
+  const goiTiepTheo = async () => {
+    try {
+      const tiep = (await api.hangChoKham()).find((l) => l.TrangThai === 'DA_CHECK_IN' || l.TrangThai === 'DA_CO_KET_QUA')
+      if (!tiep) {
+        message.info('Không còn bệnh nhân nào đang chờ')
+        return
+      }
+      await api.goiKham(tiep.MaLK)
+      navigate(`/bac-si/kham/${tiep.MaLK}`)
+    } catch (e) {
+      message.error(e instanceof LoiApi ? e.message : 'Không gọi được bệnh nhân')
+    }
+  }
+
+  const boQua = (l: LichHen) => modal.confirm({
+    title: `Bỏ qua ${l.BenhNhan}?`,
+    content: 'Bệnh nhân chưa có mặt sẽ được chuyển xuống cuối hàng chờ.',
+    okText: 'Bỏ qua',
+    cancelText: 'Đóng',
+    onOk: async () => {
+      try {
+        await api.boQuaLuot(l.MaLK)
+        tai()
+      } catch (e) {
+        message.error(e instanceof LoiApi ? e.message : 'Không bỏ qua được')
+      }
+    },
+  })
 
   const dem = (dk: (l: LichHen) => boolean) => ds.filter(dk).length
 
@@ -95,6 +142,32 @@ export default function LichKham() {
         </Space>
       ),
     },
+    {
+      title: '', key: 'thao_tac', align: 'right',
+      render: (_, l) => {
+        const choGoi = l.TrangThai === 'DA_CHECK_IN' || l.TrangThai === 'DA_CO_KET_QUA'
+        if (thaoTac && choGoi) {
+          return (
+            <Space size={4}>
+              <Button type="primary" size="small" icon={<SoundOutlined />} disabled={!!dangKhamAi} onClick={() => goi(l)}
+                title={dangKhamAi ? `Đang khám ${dangKhamAi.BenhNhan}` : undefined}>
+                {l.TrangThai === 'DA_CO_KET_QUA' ? 'Gọi đọc KQ' : 'Gọi khám'}
+              </Button>
+              <Button size="small" onClick={() => boQua(l)}>Bỏ qua</Button>
+            </Space>
+          )
+        }
+        if (CO_HO_SO.includes(l.TrangThai)) {
+          return (
+            <Button size="small" type={thaoTac && l.TrangThai === 'DANG_KHAM' ? 'primary' : 'default'} icon={<FileTextOutlined />}
+              onClick={() => navigate(`/bac-si/kham/${l.MaLK}`)}>
+              {thaoTac && l.TrangThai === 'DANG_KHAM' ? 'Tiếp tục khám' : 'Hồ sơ'}
+            </Button>
+          )
+        }
+        return null
+      },
+    },
   ]
 
   return (
@@ -118,6 +191,16 @@ export default function LichKham() {
           </Space.Compact>
           {!ngay.isSame(dayjs(), 'day') && <Button type="link" onClick={() => setNgay(dayjs())}>Hôm nay</Button>}
           <Button icon={<ReloadOutlined />} onClick={tai} loading={dangTai} aria-label="Làm mới" />
+          {thaoTac && (dangKhamAi ? (
+            <Button type="primary" icon={<FileTextOutlined />} onClick={() => navigate(`/bac-si/kham/${dangKhamAi.MaLK}`)}>
+              Đang khám: {dangKhamAi.BenhNhan}
+            </Button>
+          ) : (
+            <Button type="primary" icon={<SoundOutlined />} onClick={goiTiepTheo}
+              disabled={!ds.some((l) => l.TrangThai === 'DA_CHECK_IN' || l.TrangThai === 'DA_CO_KET_QUA')}>
+              Gọi bệnh nhân tiếp theo
+            </Button>
+          ))}
         </Space>
       </Flex>
 
