@@ -298,8 +298,9 @@ public class DatLichService {
             throw new LoiNghiepVu("Lịch hẹn không ở trạng thái có thể hủy");
         }
         KhungGio kg = khungGioRepo.findById(lk.getMaKG()).orElseThrow();
-        if (!boiLeTan && Duration.between(dongHo.bayGio(), kg.batDau()).toMinutes() < 240) {
-            throw new LoiNghiepVu("Chỉ được hủy lịch trước giờ khám ít nhất 4 giờ");                      // BR04
+        if (!boiLeTan && !duocHuy(lk, kg, dongHo.bayGio())) {
+            throw new LoiNghiepVu("Chỉ được hủy lịch trước giờ khám ít nhất 4 giờ, "
+                    + "hoặc trong " + PHUT_HUY_SAU_KHI_DAT + " phút sau khi đặt");                      // BR04
         }
         lk.setTrangThai("DA_HUY");
         lk.setLyDoHuy(lyDo);
@@ -314,6 +315,21 @@ public class DatLichService {
         thongBao.nhanVien(lk.getMaBS(), "LICH_HEN", "Bệnh nhân hủy lịch", "Lịch hẹn " + lk.getMaLichHen() + " lúc "
                 + kg.batDau().format(GIO_NGAY_NGAN) + " đã hủy", "LUOT_KHAM", maLK);
         phanBoDanhSachCho(kg.getMaKG());                                                         // UC13.9
+    }
+
+    /** Thời gian bệnh nhân được hủy lịch vừa đặt mà không tính BR04 (sửa khi chọn nhầm). */
+    static final int PHUT_HUY_SAU_KHI_DAT = 15;
+
+    /**
+     * BR04: bệnh nhân hủy khi còn ít nhất 4 giờ trước giờ khám; hoặc trong 15 phút đầu sau khi đặt,
+     * miễn là khung giờ chưa bắt đầu (đặt sát giờ mà chọn nhầm vẫn hủy được, nhưng không đặt sớm rồi hủy sát giờ).
+     */
+    private static boolean duocHuy(LuotKham lk, KhungGio kg, LocalDateTime bayGio) {
+        if (Duration.between(bayGio, kg.batDau()).toMinutes() >= 240) {
+            return true;
+        }
+        return kg.batDau().isAfter(bayGio) && lk.getNgayTao() != null
+                && !bayGio.isAfter(lk.getNgayTao().plusMinutes(PHUT_HUY_SAU_KHI_DAT));
     }
 
     /** UC6.5: BR01, BR02, BR04; đổi tối đa 2 lần, lịch quay về Chờ xác nhận. */

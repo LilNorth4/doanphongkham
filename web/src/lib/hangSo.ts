@@ -121,11 +121,18 @@ export function gioKham(lh: Pick<LichHen, 'NgayKham' | 'GioBatDau'>) {
   return dayjs(`${lh.NgayKham}T${lh.GioBatDau}`)
 }
 
-/** BR04: hủy/đổi trước giờ khám ít nhất 4 giờ; đổi tối đa 2 lần. */
+/** Thời gian được hủy lịch vừa đặt mà không tính BR04, khớp DatLichService.PHUT_HUY_SAU_KHI_DAT. */
+export const PHUT_HUY_SAU_KHI_DAT = 15
+
+/**
+ * BR04: hủy/đổi trước giờ khám ít nhất 4 giờ; đổi tối đa 2 lần.
+ * Riêng hủy: trong 15 phút sau khi đặt vẫn hủy được nếu chưa tới giờ khám (sửa khi chọn nhầm).
+ */
 export function coTheHuyDoi(lh: LichHen) {
   const conHieuLuc = lh.TrangThai === 'CHO_XAC_NHAN' || lh.TrangThai === 'DA_XAC_NHAN'
   const du4Gio = gioKham(lh).diff(dayjs(), 'minute') >= 240
-  return { huy: conHieuLuc && du4Gio, doi: conHieuLuc && du4Gio && lh.SoLanDoi < 2, du4Gio, conHieuLuc }
+  const vuaDat = gioKham(lh).isAfter(dayjs()) && dayjs().diff(dayjs(lh.NgayTao), 'minute', true) <= PHUT_HUY_SAU_KHI_DAT
+  return { huy: conHieuLuc && (du4Gio || vuaDat), doi: conHieuLuc && du4Gio && lh.SoLanDoi < 2, du4Gio, vuaDat, conHieuLuc }
 }
 
 export function tuoi(ngaySinh: string | null) {

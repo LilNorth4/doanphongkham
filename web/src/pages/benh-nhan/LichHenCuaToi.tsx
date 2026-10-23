@@ -9,7 +9,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api, LoiApi, type DangKyCho, type KhungGio, type LichHen } from '@/lib/api'
 import ChonKhungGio from '@/components/ChonKhungGio'
 import {
-  coTheHuyDoi, gioKham, LICH_CON_HIEU_LUC, TEN_BUOI, TEN_KENH, thuNgay, TRANG_THAI_LICH_HEN,
+  coTheHuyDoi, gioKham, LICH_CON_HIEU_LUC, PHUT_HUY_SAU_KHI_DAT, TEN_BUOI, TEN_KENH, thuNgay, TRANG_THAI_LICH_HEN,
 } from '@/lib/hangSo'
 
 const LY_DO_HUY = ['Bận việc đột xuất', 'Đã khỏi bệnh', 'Muốn đổi sang bác sĩ khác', 'Khác']
@@ -34,6 +34,11 @@ function TheLichHen({ lh, onDoi, onHuy }: { lh: LichHen; onDoi?: () => void; onH
   const tt = TRANG_THAI_LICH_HEN[lh.TrangThai]
   const quyen = coTheHuyDoi(lh)
   const lyDoKhoa = !quyen.du4Gio ? 'Chỉ được hủy/đổi trước giờ khám ít nhất 4 giờ' : undefined
+  // Lịch vừa đặt sát giờ: vẫn hủy được trong 15 phút sau khi đặt, nhưng không đổi được
+  const het15Phut = dayjs(lh.NgayTao).add(PHUT_HUY_SAU_KHI_DAT, 'minute')
+  const hanHuyVuaDat = het15Phut.isBefore(gioKham(lh)) ? het15Phut : gioKham(lh)
+  const goiYHuy = quyen.vuaDat && !quyen.du4Gio
+    ? `Lịch vừa đặt: được hủy đến ${hanHuyVuaDat.format('HH:mm')}` : lyDoKhoa
   const daQua = ['HOAN_THANH', 'DA_HUY', 'VANG_MAT'].includes(lh.TrangThai)
   return (
     <Card size="small" styles={{ body: { padding: 16 } }}>
@@ -68,7 +73,7 @@ function TheLichHen({ lh, onDoi, onHuy }: { lh: LichHen; onDoi?: () => void; onH
             <Tooltip title={lyDoKhoa ?? (lh.SoLanDoi >= 2 ? 'Mỗi lịch hẹn chỉ được đổi tối đa 2 lần' : undefined)}>
               <Button block disabled={!quyen.doi} onClick={onDoi}>Đổi lịch</Button>
             </Tooltip>
-            <Tooltip title={lyDoKhoa}>
+            <Tooltip title={goiYHuy}>
               <Button block danger disabled={!quyen.huy} onClick={onHuy}>Hủy lịch</Button>
             </Tooltip>
           </Space>

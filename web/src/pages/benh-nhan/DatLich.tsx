@@ -223,7 +223,7 @@ export default function DatLich() {
             <Alert type="info" showIcon style={{ marginTop: 16 }} title="Lưu ý" description={
               <ul style={{ margin: 0, paddingInlineStart: 18 }}>
                 <li>Lịch đặt trên web cần lễ tân xác nhận.</li>
-                <li>Chỉ hủy hoặc đổi lịch trước giờ khám ít nhất 4 giờ, đổi tối đa 2 lần.</li>
+                <li>Chỉ hủy hoặc đổi lịch trước giờ khám ít nhất 4 giờ, đổi tối đa 2 lần. Đặt nhầm thì được hủy trong 15 phút sau khi đặt.</li>
                 <li>Vui lòng đến trước giờ hẹn 15 phút, mang theo CCCD và thẻ BHYT (nếu có).</li>
               </ul>
             } />
