@@ -50,23 +50,18 @@ public class DatLichService {
     // ================= Tra cứu (UC5.6) =================
 
     /**
-     * Khung giờ Trống thỏa BR02 của 1 bác sĩ, hoặc của cả chuyên khoa (Bác sĩ bất kỳ).
-     * vangLai=true (UC7.7): các khung giờ chưa bắt đầu trong hôm nay, không áp BR02.
+     * Khung giờ Trống thỏa BR02 (chưa bắt đầu, trong 30 ngày tới) của 1 bác sĩ, hoặc của cả chuyên khoa (Bác sĩ bất kỳ).
+     * vangLai=true (UC7.7): chỉ các khung giờ chưa bắt đầu trong hôm nay.
      */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> lichTrong(LocalDate ngay, Integer maBS, Integer maCK, boolean vangLai) {
         List<String> dk = new ArrayList<>();
         List<Object> ts = new ArrayList<>();
-        if (vangLai) {
-            dk.add("kg.NgayKham = ?");
-            ts.add(dongHo.homNay());
-            dk.add("TIMESTAMP(kg.NgayKham, kg.GioBatDau) > ?");
-            ts.add(dongHo.bayGio());
-        } else {
-            dk.add("kg.NgayKham = ?");
-            ts.add(ngay);
-            dk.add("TIMESTAMP(kg.NgayKham, kg.GioBatDau) >= ?");
-            ts.add(dongHo.bayGio().plusHours(2));
+        dk.add("kg.NgayKham = ?");
+        ts.add(vangLai ? dongHo.homNay() : ngay);
+        dk.add("TIMESTAMP(kg.NgayKham, kg.GioBatDau) > ?");
+        ts.add(dongHo.bayGio());
+        if (!vangLai) {
             dk.add("kg.NgayKham <= ?");
             ts.add(dongHo.homNay().plusDays(30));
         }
@@ -81,15 +76,18 @@ public class DatLichService {
                 WHERE %s ORDER BY kg.GioBatDau, bs.MaNV""".formatted(String.join(" AND ", dk)), ts.toArray());
     }
 
-    /** Số khung giờ Trống (thỏa BR02) theo từng ngày trong 30 ngày tới, để tô lịch chọn ngày. */
+    /**
+     * Theo từng ngày trong 30 ngày tới có bác sĩ làm việc: số khung giờ chưa bắt đầu (SoKhung, không tính khung bị khóa)
+     * và số khung còn Trống. SoKhungTrong = 0 nghĩa là ngày đã kín lịch.
+     */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> ngayConTrong(Integer maCK, Integer maBS) {
-        List<String> dk = new ArrayList<>(List.of("kg.TrangThai = 'TRONG'", "bs.TrangThai = 'HOAT_DONG'",
-                "TIMESTAMP(kg.NgayKham, kg.GioBatDau) >= ?", "kg.NgayKham <= ?"));
-        List<Object> ts = new ArrayList<>(List.of(dongHo.bayGio().plusHours(2), dongHo.homNay().plusDays(30)));
+        List<String> dk = new ArrayList<>(List.of("kg.TrangThai <> 'DA_KHOA'", "bs.TrangThai = 'HOAT_DONG'",
+                "TIMESTAMP(kg.NgayKham, kg.GioBatDau) > ?", "kg.NgayKham <= ?"));
+        List<Object> ts = new ArrayList<>(List.of(dongHo.bayGio(), dongHo.homNay().plusDays(30)));
         locBacSi(dk, ts, maBS, maCK);
         return tv.ds("""
-                SELECT kg.NgayKham AS Ngay, COUNT(*) AS SoKhungTrong
+                SELECT kg.NgayKham AS Ngay, COUNT(*) AS SoKhung, SUM(kg.TrangThai = 'TRONG') AS SoKhungTrong
                 FROM KhungGio kg JOIN CaLamViec ca ON ca.MaCa = kg.MaCa JOIN NhanVien bs ON bs.MaNV = ca.MaBS
                 WHERE %s GROUP BY kg.NgayKham ORDER BY kg.NgayKham""".formatted(String.join(" AND ", dk)),
                 ts.toArray());
@@ -198,8 +196,8 @@ public class DatLichService {
             if (!kg.getNgayKham().equals(bayGio.toLocalDate()) || !kg.batDau().isAfter(bayGio)) {
                 throw new LoiNghiepVu("Bệnh nhân vãng lai chỉ được xếp vào khung giờ chưa bắt đầu trong ngày");
             }
-        } else if (kg.batDau().isBefore(bayGio.plusHours(2)) || kg.batDau().isAfter(bayGio.plusDays(30))) {
-            throw new LoiNghiepVu("Chỉ được đặt lịch trong 30 ngày tới và trước giờ khám ít nhất 2 giờ");   // BR02
+        } else {
+            kiemTraThoiDiemDat(kg, bayGio);                                                      // BR02
         }
         if (tv.dem("SELECT COUNT(*) FROM LuotKham WHERE MaBN = ? AND TrangThai IN (?)",
                 maBN, TRANG_THAI_CON_HIEU_LUC) >= 3) {
@@ -231,6 +229,16 @@ public class DatLichService {
         lk.setMaLichHen("LH" + bayGio.format(DateTimeFormatter.ofPattern("yyMMdd")) + String.format("%04d", lk.getMaLK()));
         kg.setTrangThai("DA_DAT");
         return new KetQuaDat(lk, kg, daXacNhan);
+    }
+
+    /** BR02: khung giờ chưa bắt đầu và trong vòng 30 ngày tới. */
+    private static void kiemTraThoiDiemDat(KhungGio kg, LocalDateTime bayGio) {
+        if (!kg.batDau().isAfter(bayGio)) {
+            throw new LoiNghiepVu("Khung giờ này đã bắt đầu, vui lòng chọn khung giờ khác");
+        }
+        if (kg.batDau().isAfter(bayGio.plusDays(30))) {
+            throw new LoiNghiepVu("Chỉ được đặt lịch trong 30 ngày tới");
+        }
     }
 
     /** BR03: không trùng thời điểm với lịch khác, không 2 lịch cùng bác sĩ trong một ngày. boQua = lịch đang đổi. */
@@ -326,10 +334,7 @@ public class DatLichService {
         if (moi == null || !"TRONG".equals(moi.getTrangThai())) {
             throw new LoiNghiepVu("Khung giờ mới không còn trống");
         }
-        LocalDateTime bayGio = dongHo.bayGio();
-        if (moi.batDau().isBefore(bayGio.plusHours(2)) || moi.batDau().isAfter(bayGio.plusDays(30))) {
-            throw new LoiNghiepVu("Chỉ được đặt lịch trong 30 ngày tới và trước giờ khám ít nhất 2 giờ");
-        }
+        kiemTraThoiDiemDat(moi, dongHo.bayGio());                                                // BR02
         Integer maBSMoi = tv.giaTri("SELECT MaBS FROM CaLamViec WHERE MaCa = ?", moi.getMaCa());
         kiemTraTrungLich(lk.getMaBN(), maLK, moi, maBSMoi);
         lk.setMaKG(maKGMoi);
@@ -360,8 +365,8 @@ public class DatLichService {
         }
         String b = buoi == null ? "CA_NGAY" : buoi;
         List<String> dk = new ArrayList<>(List.of("kg.TrangThai = 'TRONG'", "bs.TrangThai = 'HOAT_DONG'",
-                "kg.NgayKham = ?", "TIMESTAMP(kg.NgayKham, kg.GioBatDau) >= ?"));
-        List<Object> ts = new ArrayList<>(List.of(ngay, dongHo.bayGio().plusHours(2)));
+                "kg.NgayKham = ?", "TIMESTAMP(kg.NgayKham, kg.GioBatDau) > ?"));
+        List<Object> ts = new ArrayList<>(List.of(ngay, dongHo.bayGio()));
         locBacSi(dk, ts, maBS, maCK);
         if (!"CA_NGAY".equals(b)) {
             dk.add("ca.CaLam = ?");
@@ -407,8 +412,8 @@ public class DatLichService {
         }
         LocalDate ngay = (LocalDate) kg.get("NgayKham");
         LocalDateTime batDau = LocalDateTime.of(ngay, java.time.LocalTime.parse((String) kg.get("GioBatDau")));
-        if (batDau.isBefore(dongHo.bayGio().plusHours(2))) {
-            return;                                                                              // BR02
+        if (batDau.isBefore(dongHo.bayGio().plusMinutes(15))) {
+            return;                                                    // khung sắp bắt đầu, không kịp giữ chỗ 15 phút
         }
         // Bỏ qua người không nhận được khung giờ này (BR03, tài khoản bị khóa), tránh khung giờ kẹt ở Đang giữ chỗ
         Integer maDKC = tv.giaTri("""

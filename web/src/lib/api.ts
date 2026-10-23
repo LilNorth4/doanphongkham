@@ -122,7 +122,8 @@ export interface BacSi {
   TenCK: string
 }
 
-export interface NgayTrong { Ngay: string; SoKhungTrong: number }
+/** SoKhung: khung chưa bắt đầu của ngày; SoKhungTrong = 0 là ngày đã kín lịch. */
+export interface NgayTrong { Ngay: string; SoKhung: number; SoKhungTrong: number }
 
 export interface KhungGio {
   MaKG: number

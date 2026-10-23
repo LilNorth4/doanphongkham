@@ -26,7 +26,9 @@ export default function ChonKhungGio({ maCk, maBs, vangLai, value, onChange, boQ
   const [khung, setKhung] = useState<KhungGio[] | null>(null)
   const [loi, setLoi] = useState<string | null>(null)
 
-  const soKhung = useMemo(() => new Map((ngayTrong ?? []).map((n) => [n.Ngay, n.SoKhungTrong])), [ngayTrong])
+  // Ngày -> số khung còn trống; ngày có bác sĩ làm nhưng đã kín lịch có giá trị 0
+  const soKhung = useMemo(() => new Map((ngayTrong ?? []).map((n) => [n.Ngay, Number(n.SoKhungTrong)])), [ngayTrong])
+  const conTrong = (d: Dayjs) => (soKhung.get(d.format('YYYY-MM-DD')) ?? 0) > 0
 
   useEffect(() => {
     if (vangLai) return
@@ -36,7 +38,8 @@ export default function ChonKhungGio({ maCk, maBs, vangLai, value, onChange, boQ
       .then((ds) => {
         if (huy) return
         setNgayTrong(ds)
-        setNgay(ds.length ? dayjs(ds[0].Ngay) : null)
+        const dau = ds.find((n) => Number(n.SoKhungTrong) > 0)
+        setNgay(dau ? dayjs(dau.Ngay) : null)
       })
       .catch((e) => !huy && setLoi(e.message))
     return () => { huy = true }
@@ -60,6 +63,13 @@ export default function ChonKhungGio({ maCk, maBs, vangLai, value, onChange, boQ
   const theoCa = (ca: KhungGio['CaLam']) => (khung ?? []).filter((k) => k.CaLam === ca)
   const nhieuBacSi = !maBs && new Set((khung ?? []).map((k) => k.MaBS)).size > 1
 
+  const lyDoHetCho = () => {
+    if (vangLai) return 'Hôm nay không còn khung giờ trống'
+    if (ngay && soKhung.get(ngay.format('YYYY-MM-DD')) === 0) return 'Ngày này đã kín lịch'
+    if (ngay?.isSame(dayjs(), 'day')) return 'Hôm nay không còn khung giờ nào chưa bắt đầu'
+    return 'Ngày này không có lịch khám'
+  }
+
   const danhSachKhung = (
     <div>
       <Typography.Title level={5} style={{ marginTop: 0 }}>
@@ -69,8 +79,7 @@ export default function ChonKhungGio({ maCk, maBs, vangLai, value, onChange, boQ
         <Skeleton active paragraph={{ rows: 4 }} />
       ) : khung.length === 0 ? (
         <>
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={vangLai ? 'Hôm nay không còn khung giờ trống' : 'Ngày này đã hết khung giờ trống'} />
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={lyDoHetCho()} />
           {khiHetCho?.(ngay)}
         </>
       ) : (
@@ -103,8 +112,8 @@ export default function ChonKhungGio({ maCk, maBs, vangLai, value, onChange, boQ
 
   if (ngayTrong === null) return <Skeleton active paragraph={{ rows: 6 }} />
   // Có khiHetCho (đăng ký danh sách chờ) thì ngày đã kín vẫn chọn được, để hiện nút đăng ký chờ cho ngày đó
-  const chonDuoc = (d: Dayjs) => !!khiHetCho || soKhung.has(d.format('YYYY-MM-DD'))
-  if (ngayTrong.length === 0 && !khiHetCho) {
+  const chonDuoc = (d: Dayjs) => !!khiHetCho || conTrong(d)
+  if (!ngayTrong.some((n) => Number(n.SoKhungTrong) > 0) && !khiHetCho) {
     return <Empty description="Không còn lịch trống trong 30 ngày tới" />
   }
 
@@ -126,6 +135,7 @@ export default function ChonKhungGio({ maCk, maBs, vangLai, value, onChange, boQ
             fullCellRender={(d, info) => {
               if (info.type !== 'date') return info.originNode
               const n = soKhung.get(d.format('YYYY-MM-DD'))
+              const kin = n === 0
               const chon = ngay?.isSame(d, 'day')
               return (
                 <div style={{
@@ -134,8 +144,8 @@ export default function ChonKhungGio({ maCk, maBs, vangLai, value, onChange, boQ
                   color: chon ? '#fff' : n ? token.colorText : token.colorTextDisabled,
                 }}>
                   <div>{d.date()}</div>
-                  <div style={{ fontSize: 10, color: chon ? '#fff' : token.colorSuccess, minHeight: 12 }}>
-                    {n ? n : ''}
+                  <div style={{ fontSize: 10, color: chon ? '#fff' : kin ? token.colorError : token.colorSuccess, minHeight: 12 }}>
+                    {kin ? 'Kín' : n || ''}
                   </div>
                 </div>
               )
@@ -143,7 +153,7 @@ export default function ChonKhungGio({ maCk, maBs, vangLai, value, onChange, boQ
           />
         </div>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          Số nhỏ dưới mỗi ngày là số khung giờ còn trống. Đặt trước giờ khám ít nhất 2 giờ.
+          Số nhỏ dưới mỗi ngày là số khung giờ còn trống, "Kín" là ngày đã hết chỗ. Đặt được mọi khung giờ chưa bắt đầu.
           {khiHetCho && ' Ngày đã kín chỗ có thể đăng ký danh sách chờ.'}
         </Typography.Text>
       </Col>
