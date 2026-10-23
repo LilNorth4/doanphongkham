@@ -19,5 +19,9 @@
   "sqltools.useNodeRuntime": true,
   "java.compile.nullAnalysis.mode": "automatic",
   // Không để VS Code tự biên dịch vào backend/target/classes (thiếu Lombok, ghi đè class của Maven)
-  "java.autobuild.enabled": false
+  "java.autobuild.enabled": false,
+  // Lombok 1.18.39 đi kèm extension Java không khớp trình biên dịch JDT mới, báo lỗi giả
+  // "Flexible Constructor Bodies" ở @RequiredArgsConstructor. Dùng Lombok của dự án (pom.xml) thay thế.
+  "java.jdt.ls.lombokSupport.enabled": false,
+  "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx2G -Xms100m -Xlog:disable -javaagent:C:\\Users\\NITRO5~1\\.m2\\repository\\org\\projectlombok\\lombok\\1.18.46\\lombok-1.18.46.jar"
 }
