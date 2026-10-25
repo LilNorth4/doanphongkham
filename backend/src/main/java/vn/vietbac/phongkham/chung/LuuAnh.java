@@ -6,6 +6,8 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -13,8 +15,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Lưu ảnh người dùng tải lên (ảnh đại diện) vào thư mục trên đĩa, phục vụ lại qua /api/tep/**
- * (khai báo trong CauHinhWeb). Chỉ nhận JPEG, PNG, WEBP; nhận dạng theo byte đầu file chứ không tin đuôi file.
+ * Lưu tệp người dùng tải lên (ảnh đại diện, ảnh/PDF kết quả cận lâm sàng) vào thư mục trên đĩa, phục vụ lại qua
+ * /api/tep/** (khai báo trong CauHinhWeb). Nhận dạng loại tệp theo byte đầu file chứ không tin đuôi file.
  */
 @Component
 public class LuuAnh {
@@ -32,22 +34,31 @@ public class LuuAnh {
         return thuMuc;
     }
 
-    /** Lưu ảnh vào thư mục con, trả về đường dẫn web để ghi vào CSDL (VD /api/tep/anh-dai-dien/abc.jpg). */
+    /** Lưu ảnh JPG/PNG/WEBP tối đa 2 MB vào thư mục con, trả về đường dẫn web để ghi vào CSDL (VD /api/tep/anh-dai-dien/abc.jpg). */
     public String luu(MultipartFile tep, String thuMucCon, String tienTo) {
+        return luu(tep, thuMucCon, tienTo, TOI_DA, Set.of("jpg", "png", "webp"));
+    }
+
+    /**
+     * Lưu tệp có loại nằm trong duocPhep (jpg, png, webp, pdf) và không quá toiDa byte.
+     * Đuôi của đường dẫn trả về là loại thật của tệp.
+     */
+    public String luu(MultipartFile tep, String thuMucCon, String tienTo, long toiDa, Set<String> duocPhep) {
         if (tep == null || tep.isEmpty()) {
-            throw new LoiNghiepVu("Vui lòng chọn ảnh");
+            throw new LoiNghiepVu("Vui lòng chọn tệp");
         }
-        if (tep.getSize() > TOI_DA) {
-            throw new LoiNghiepVu("Ảnh tối đa 2 MB");
+        if (tep.getSize() > toiDa) {
+            throw new LoiNghiepVu("Tệp tối đa " + toiDa / (1024 * 1024) + " MB");
         }
         try {
             byte[] dau;
             try (InputStream in = tep.getInputStream()) {
                 dau = in.readNBytes(12);
             }
-            String duoi = duoiAnh(dau);
-            if (duoi == null) {
-                throw new LoiNghiepVu("Chỉ nhận ảnh JPG, PNG hoặc WEBP");
+            String duoi = loaiTep(dau);
+            if (duoi == null || !duocPhep.contains(duoi)) {
+                throw new LoiNghiepVu("Chỉ nhận tệp " + String.join(", ", duocPhep.stream().sorted()
+                        .map(d -> d.toUpperCase(Locale.ROOT)).toList()));
             }
             Path dich = thuMuc.resolve(thuMucCon);
             Files.createDirectories(dich);
@@ -77,7 +88,10 @@ public class LuuAnh {
         }
     }
 
-    private static String duoiAnh(byte[] b) {
+    private static String loaiTep(byte[] b) {
+        if (b.length >= 4 && b[0] == '%' && b[1] == 'P' && b[2] == 'D' && b[3] == 'F') {
+            return "pdf";
+        }
         if (b.length >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8 && (b[2] & 0xFF) == 0xFF) {
             return "jpg";
         }

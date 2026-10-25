@@ -64,7 +64,7 @@ cp .env.example .env
 | `CHE_DO_THU` | `1`: xem mã OTP, mật khẩu tạm trong hộp thư giả lập. Không bật khi triển khai thật |
 | `WEB_PORT` | Cổng mở giao diện khi chạy bằng Docker (mặc định 80) |
 
-Backend đọc file `.env` ở thư mục gốc (khai báo `spring.config.import` trong `application.properties`). Docker Compose cũng đọc file này. Giao diện web không cần biến môi trường vì mọi lời gọi đều đi qua đường dẫn `/api`.
+Backend đọc file `.env` ở thư mục gốc (khai báo `spring.config.import` trong `application.properties`). Biến môi trường của hệ điều hành hoặc cửa sổ lệnh (VD `DB_NAME=phongkham_kiemthu` khi chạy thử) được ưu tiên hơn `.env`, nên dữ liệu có thể bị ghi sang CSDL khác: xem dòng `Dữ liệu được lưu vào CSDL '...'` khi backend khởi động, hoặc nhãn `CSDL: ...` trên đầu trang khi bật `CHE_DO_THU=1`. Docker Compose cũng đọc file này. Giao diện web không cần biến môi trường vì mọi lời gọi đều đi qua đường dẫn `/api`.
 
 ## Cách 1: chạy bằng Docker (khuyên dùng)
 
@@ -82,9 +82,24 @@ Xóa sạch dữ liệu để tạo lại từ đầu:
 docker compose down -v
 ```
 
-## Cách 2: chạy khi phát triển
+## Cách 2: tự chạy trên máy Windows, một cổng http://localhost:8080
 
-Yêu cầu: JDK 21, Node.js 22, MySQL 8 đang chạy trên máy.
+Yêu cầu: JDK 21, Node.js 22, MySQL 8 (dịch vụ Windows, tự khởi động).
+
+Chạy `cai_dat_tu_chay.bat` một lần. Script build giao diện (`web/dist`), đóng gói backend thành jar, đăng ký tác vụ
+`PhongKhamVietBac` trong Task Scheduler rồi khởi động. Backend phục vụ luôn giao diện nên chỉ có một cổng 8080;
+mỗi lần đăng nhập Windows máy chủ tự chạy ngầm (không có cửa sổ), cứ mở http://localhost:8080 là dùng.
+
+- Sửa code xong: chạy lại `cai_dat_tu_chay.bat` để build và thay bản đang chạy.
+- Máy chủ bị lỗi hoặc thoát (VD MySQL khởi động chậm hơn) thì tự chạy lại sau 10–60 giây; lịch sử ở `khoi-dong-lai.log`.
+- Đã tắt hẳn (`/dung`) hoặc lỡ tắt tác vụ: `chay_phongkham.bat` khởi động lại và mở trình duyệt.
+- Log: `C:\Users\Public\PhongKhamVietBac\backend.log`. Jar và `application.yml` (đường dẫn tới `.env`, `web/dist`,
+  `backend/du-lieu-tai-len`) cũng nằm ở thư mục này vì Task Scheduler không chạy được trong thư mục có dấu.
+- Tắt hẳn (không tự bật lại tới lần đăng nhập sau): `cai_dat_tu_chay.bat /dung`. Gỡ: `cai_dat_tu_chay.bat /gobo`.
+
+## Cách 3: chạy khi phát triển (sửa giao diện thấy ngay)
+
+Tắt bản tự chạy trước để giải phóng cổng 8080: `cai_dat_tu_chay.bat /dung`.
 
 ```bash
 # Backend: http://localhost:8080

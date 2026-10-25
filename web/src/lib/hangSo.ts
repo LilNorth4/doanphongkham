@@ -1,8 +1,8 @@
 import type { FormRule } from 'antd'
 import dayjs from 'dayjs'
 import type {
-  CaLam, DangKyCho, KenhDat, LichHen, LoaiDichVu, LoaiDiem, LoaiPhong, PhieuChiDinh, TrangThaiDangKyCa, TrangThaiKhungGio, TrangThaiLichHen,
-  TrangThaiPhieuCls, TrangThaiTaiKhoan, VaiTro, VaiTroNhanVien,
+  CaLam, DangKyCho, HinhThucHoaDon, KenhDat, LichHen, LoaiDichVu, LoaiDiem, LoaiPhong, PhieuChiDinh, TrangThaiDangKyCa, TrangThaiKhungGio, TrangThaiLichHen,
+  TrangThaiPhieuCls, TrangThaiTaiKhoan, VaiTro, VaiTroNhanVien, CamXuc, CotTieuChi, LoaiGopY, MucDoNghiemTrong, TrangThaiGopY,
 } from '@/lib/api'
 
 export const TEN_PHONG_KHAM = 'Phòng khám Đa khoa Việt Bắc'
@@ -185,6 +185,13 @@ export const TRANG_THAI_DANG_KY_CA: Record<TrangThaiDangKyCa, { ten: string; mau
 
 // Trang duyệt đăng ký ca phát sự kiện này để badge trên menu cập nhật ngay
 export const SU_KIEN_SO_DANG_KY_CA = 'phongkham:so-dang-ky-ca'
+// Trang thu tạm thu và trang hàng chờ CLS phát sự kiện để badge trên menu cập nhật ngay
+export const SU_KIEN_SO_TAM_THU = 'phongkham:so-tam-thu'
+export const SU_KIEN_SO_CLS = 'phongkham:so-cls'
+
+export const TEN_HINH_THUC: Record<HinhThucHoaDon, string> = { TIEN_MAT: 'Tiền mặt', CHUYEN_KHOAN: 'Chuyển khoản', MOMO: 'Ví MoMo' }
+export const SU_KIEN_SO_HOA_DON = 'phongkham:so-hoa-don'
+export const TEN_LOAI_MUC: Record<'KHAM' | 'CLS' | 'THUOC', string> = { KHAM: 'Khám bệnh', CLS: 'Cận lâm sàng', THUOC: 'Thuốc' }
 
 /** Ca đã hủy nhưng còn lịch sử lịch hẹn: giữ lại, mọi khung giờ bị khóa. */
 export function caDaNghi(ca: { TongKhung: number; SoKhoa: number }) {
@@ -225,6 +232,13 @@ export const TEN_HANH_DONG: Record<string, { ten: string; mau: string }> = {
   NGUNG_DANH_MUC: { ten: 'Ngừng danh mục', mau: 'orange' },
   MO_DANH_MUC: { ten: 'Mở lại danh mục', mau: 'lime' },
   XOA_DANH_MUC: { ten: 'Xóa trên sơ đồ', mau: 'red' },
+  GUI_DANH_GIA: { ten: 'Gửi đánh giá', mau: 'gold' },
+  GUI_GOP_Y: { ten: 'Gửi góp ý', mau: 'geekblue' },
+  BO_SUNG_GOP_Y: { ten: 'Bổ sung góp ý', mau: 'geekblue' },
+  TIEP_NHAN_GOP_Y: { ten: 'Tiếp nhận góp ý', mau: 'blue' },
+  PHAN_HOI_GOP_Y: { ten: 'Phản hồi góp ý', mau: 'green' },
+  GHI_CHU_GOP_Y: { ten: 'Ghi chú nội bộ góp ý', mau: 'default' },
+  DONG_GOP_Y: { ten: 'Đóng góp ý', mau: 'default' },
 }
 
 // ---------- Danh mục, mặt bằng (gói 3) ----------
@@ -274,3 +288,55 @@ export function taiCsv<T>(tenTep: string, cot: { ten: string; lay: (r: T) => unk
   a.click()
   URL.revokeObjectURL(url)
 }
+
+/** Mệnh giá thường gặp để thu ngân bấm nhanh tiền khách đưa. */
+export function goiYTienDua(phaiThu: number) {
+  const ds = [phaiThu]
+  for (const buoc of [10_000, 50_000, 100_000, 500_000]) {
+    const lamTron = Math.ceil(phaiThu / buoc) * buoc
+    if (lamTron > phaiThu && !ds.includes(lamTron)) ds.push(lamTron)
+  }
+  return ds.slice(0, 4)
+}
+
+export const TEN_LY_DO_HOAN: Record<string, string> = {
+  HUY_PHIEU_CLS: 'Hủy phiếu CLS đã thu', BHYT_XAC_MINH: 'BHYT xác minh sau', HOA_DON_THAY_THE: 'Hóa đơn thay thế nhỏ hơn',
+  CHUYEN_KHOAN_THUA: 'Chuyển khoản thừa', KHAC: 'Khác',
+}
+export const TRANG_THAI_HOAN: Record<string, { ten: string; mau: string }> = {
+  CHO_DUYET: { ten: 'Chờ duyệt', mau: 'orange' }, CHO_HOAN: { ten: 'Chờ hoàn', mau: 'gold' },
+  DA_HOAN: { ten: 'Đã hoàn', mau: 'green' }, TU_CHOI: { ten: 'Từ chối', mau: 'default' },
+}
+/** BR31: phiếu hoàn trên mức này phải được quản trị viên duyệt (khớp HoanTienService.NGUONG_DUYET). */
+export const NGUONG_DUYET_HOAN = 1_000_000
+export const SU_KIEN_SO_HOAN = 'phongkham:so-hoan-tien'
+
+// ---------- Đánh giá, góp ý (gói 12) ----------
+/** BR24: thứ tự và tên 6 tiêu chí dịch vụ (khớp DanhGiaService.TIEU_CHI). */
+export const TIEU_CHI_DANH_GIA: { cot: CotTieuChi; ten: string }[] = [
+  { cot: 'DiemThoiGianCho', ten: 'Thời gian chờ' }, { cot: 'DiemThuTucTiepDon', ten: 'Thủ tục tiếp đón' },
+  { cot: 'DiemThaiDoNhanVien', ten: 'Thái độ nhân viên' }, { cot: 'DiemCoSoVatChat', ten: 'Cơ sở vật chất' },
+  { cot: 'DiemDichVuCLS', ten: 'Dịch vụ cận lâm sàng' }, { cot: 'DiemChiPhi', ten: 'Chi phí' },
+]
+export const TEN_CHU_DE_DANH_GIA: Record<string, string> = {
+  THOI_GIAN_CHO: 'Thời gian chờ', THAI_DO: 'Thái độ phục vụ', CHUYEN_MON: 'Chuyên môn', CO_SO_VAT_CHAT: 'Cơ sở vật chất',
+  CHI_PHI: 'Chi phí', THU_TUC: 'Thủ tục',
+}
+export const CAM_XUC: Record<CamXuc, { ten: string; mau: string }> = {
+  TICH_CUC: { ten: 'Tích cực', mau: 'green' }, TRUNG_TINH: { ten: 'Trung tính', mau: 'default' },
+  TIEU_CUC: { ten: 'Tiêu cực', mau: 'red' },
+}
+export const MUC_DO_NGHIEM_TRONG: Record<MucDoNghiemTrong, { ten: string; mau: string }> = {
+  THAP: { ten: 'Thấp', mau: 'default' }, TRUNG_BINH: { ten: 'Trung bình', mau: 'orange' }, CAO: { ten: 'Cao', mau: 'red' },
+}
+export const TEN_LOAI_GOP_Y: Record<LoaiGopY, string> = { GOP_Y: 'Góp ý', KHIEU_NAI: 'Khiếu nại' }
+export const TRANG_THAI_GOP_Y: Record<TrangThaiGopY, { ten: string; mau: string }> = {
+  MOI: { ten: 'Mới', mau: 'blue' }, DANG_XU_LY: { ten: 'Đang xử lý', mau: 'gold' },
+  DA_PHAN_HOI: { ten: 'Đã phản hồi', mau: 'green' }, DA_DONG: { ten: 'Đã đóng', mau: 'default' },
+}
+export const CHU_DE_GOP_Y = ['Thời gian chờ', 'Thái độ phục vụ', 'Chuyên môn bác sĩ', 'Thủ tục, đặt lịch', 'Cơ sở vật chất',
+  'Chi phí, thanh toán', 'Ứng dụng', 'Khác']
+/** BR25: hạn phản hồi góp ý (giờ). */
+export const HAN_PHAN_HOI_GOP_Y = 48
+export const SU_KIEN_SO_GOP_Y = 'phongkham:so-gop-y'
+export const SU_KIEN_SO_DANH_GIA = 'phongkham:so-danh-gia'

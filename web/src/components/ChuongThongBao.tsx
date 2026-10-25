@@ -31,6 +31,17 @@ export default function ChuongThongBao() {
   const duongDan = (tb: ThongBao) => {
     const laBenhNhan = nguoiDung?.VaiTro === 'BENH_NHAN'
     if (tb.LoaiDoiTuong === 'DANG_KY_CHO') return '/lich-hen-cua-toi?tab=cho'
+    if (tb.LoaiDoiTuong === 'PHIEU_HOAN_TIEN') return '/hoan-tien'
+    if (tb.LoaiDoiTuong === 'DANH_GIA') return tb.MaDoiTuong ? `/danh-gia?luot=${tb.MaDoiTuong}` : '/danh-gia'
+    if (tb.LoaiDoiTuong === 'DANH_GIA_BAO_CAO') return '/quan-ly/danh-gia'
+    if (tb.LoaiDoiTuong === 'PHIEU_GOP_Y') {
+      const ma = tb.MaDoiTuong ? `?phieu=${tb.MaDoiTuong}` : ''
+      return laBenhNhan ? `/gop-y${ma}` : `/quan-ly/gop-y${ma}`
+    }
+    if (tb.LoaiDoiTuong === 'HOA_DON') {
+      if (laBenhNhan) return tb.MaDoiTuong ? `/hoa-don?hd=${tb.MaDoiTuong}` : '/hoa-don'
+      if (nguoiDung?.Quyen.includes('THANH_TOAN.THU')) return '/le-tan/thanh-toan'
+    }
     if (tb.LoaiDoiTuong === 'CA_LAM_VIEC') return tb.MaDoiTuong ? `/lich-lam-viec?ca=${tb.MaDoiTuong}` : '/lich-lam-viec'
     if (tb.LoaiDoiTuong === 'DANG_KY_CA') {
       return nguoiDung?.Quyen.includes('LICH_LV.QUAN_LY') ? '/lich-lam-viec/duyet' : '/lich-lam-viec/dang-ky'
@@ -40,7 +51,8 @@ export default function ChuongThongBao() {
         return tb.LoaiSuKien === 'HOAN_TAT_KHAM' && tb.MaDoiTuong ? `/ho-so-suc-khoe?luot=${tb.MaDoiTuong}` : '/lich-hen-cua-toi'
       }
       if (nguoiDung?.Quyen.includes('LICH_HEN.DUYET')) return '/le-tan/lich-hen'
-      if (nguoiDung?.Quyen.includes('KHAM.THUC_HIEN')) return '/bac-si/lich-kham'
+      // Bác sĩ: thông báo về một lượt khám (đủ kết quả CLS, kết quả được điều chỉnh) mở thẳng lượt đó
+      if (nguoiDung?.Quyen.includes('KHAM.THUC_HIEN')) return tb.MaDoiTuong ? `/bac-si/kham/${tb.MaDoiTuong}` : '/bac-si/lich-kham'
     }
     return null
   }

@@ -95,7 +95,7 @@ export default function DangKyCa() {
         <Card title={<><PlusOutlined /> Đăng ký ca mới</>}>
           <Form form={form} layout="vertical" onFinish={gui} initialValues={{ ca_lam: 'SANG' }} requiredMark={false}>
             <Form.Item name="ngay" label="Ngày làm" rules={[{ required: true, message: 'Chọn ngày' }]}>
-              <DatePicker format="dddd, DD/MM/YYYY" style={{ width: '100%' }} placeholder="Chọn ngày"
+              <DatePicker format={(d) => thuNgay(d)} style={{ width: '100%' }} placeholder="Chọn ngày"
                 disabledDate={(d) => !d.isAfter(dayjs(), 'day') || d.isAfter(dayjs().add(62, 'day')) || d.day() === 0} />
             </Form.Item>
             <Form.Item name="ca_lam" label="Ca">

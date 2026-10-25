@@ -16,9 +16,21 @@ const XacThucEmail = lazy(() => import('@/pages/xac-thuc/XacThucEmail'))
 const DatLich = lazy(() => import('@/pages/benh-nhan/DatLich'))
 const LichHenCuaToi = lazy(() => import('@/pages/benh-nhan/LichHenCuaToi'))
 const HoSoSucKhoe = lazy(() => import('@/pages/benh-nhan/HoSoSucKhoe'))
+const HoaDonCuaToi = lazy(() => import('@/pages/benh-nhan/HoaDonCuaToi'))
+const DanhGiaCuaToi = lazy(() => import('@/pages/benh-nhan/DanhGiaCuaToi'))
+const GopYCuaToi = lazy(() => import('@/pages/benh-nhan/GopYCuaToi'))
+const KetQuaMoMo = lazy(() => import('@/pages/benh-nhan/KetQuaMoMo'))
 // Lễ tân
 const DatLichHo = lazy(() => import('@/pages/le-tan/DatLichHo'))
 const QuanLyLichHen = lazy(() => import('@/pages/le-tan/QuanLyLichHen'))
+const ThuTamThu = lazy(() => import('@/pages/le-tan/ThuTamThu'))
+const ThanhToan = lazy(() => import('@/pages/le-tan/ThanhToan'))
+const HoanTien = lazy(() => import('@/pages/le-tan/HoanTien'))
+const BaoCaoDanhGia = lazy(() => import('@/pages/quan-tri/BaoCaoDanhGia'))
+const GopY = lazy(() => import('@/pages/quan-tri/GopY'))
+const ThongKe = lazy(() => import('@/pages/quan-tri/ThongKe'))
+// Cận lâm sàng
+const HangChoCls = lazy(() => import('@/pages/can-lam-sang/HangChoCls'))
 // Bác sĩ
 const LichKham = lazy(() => import('@/pages/bac-si/LichKham'))
 const KhamBenh = lazy(() => import('@/pages/bac-si/KhamBenh'))
@@ -54,8 +66,20 @@ const privateRoutes: RouteItem[] = [
   { path: '/dat-lich', element: <CanDangNhap quyen="LICH_HEN.DAT"><DatLich /></CanDangNhap> },
   { path: '/lich-hen-cua-toi', element: <CanDangNhap quyen="LICH_HEN.DAT"><LichHenCuaToi /></CanDangNhap> },
   { path: '/ho-so-suc-khoe', element: <CanDangNhap quyen="HO_SO.XEM_CUA_MINH"><HoSoSucKhoe /></CanDangNhap> },
+  { path: '/hoa-don', element: <CanDangNhap quyen="HO_SO.XEM_CUA_MINH"><HoaDonCuaToi /></CanDangNhap> },
+  { path: '/danh-gia', element: <CanDangNhap quyen="DANH_GIA.GUI"><DanhGiaCuaToi /></CanDangNhap> },
+  { path: '/gop-y', element: <CanDangNhap quyen="DANH_GIA.GUI"><GopYCuaToi /></CanDangNhap> },
+  // MoMo đưa người dùng về đây sau khi thanh toán (phongkham.dia-chi-web + /thanh-toan/momo)
+  { path: '/thanh-toan/momo', element: <KetQuaMoMo /> },
   { path: '/le-tan/lich-hen', element: <CanDangNhap quyen="LICH_HEN.DUYET"><QuanLyLichHen /></CanDangNhap> },
   { path: '/le-tan/dat-lich', element: <CanDangNhap quyen="LICH_HEN.DUYET"><DatLichHo /></CanDangNhap> },
+  { path: '/le-tan/tam-thu', element: <CanDangNhap quyen="THANH_TOAN.THU"><ThuTamThu /></CanDangNhap> },
+  { path: '/le-tan/thanh-toan', element: <CanDangNhap quyen={['THANH_TOAN.THU', 'HOA_DON.HUY']}><ThanhToan /></CanDangNhap> },
+  { path: '/hoan-tien', element: <CanDangNhap quyen={['HOAN_TIEN.LAP', 'HOAN_TIEN.DUYET']}><HoanTien /></CanDangNhap> },
+  { path: '/quan-ly/thong-ke', element: <CanDangNhap quyen="THONG_KE.XEM"><ThongKe /></CanDangNhap> },
+  { path: '/quan-ly/danh-gia', element: <CanDangNhap quyen="THONG_KE.XEM"><BaoCaoDanhGia /></CanDangNhap> },
+  { path: '/quan-ly/gop-y', element: <CanDangNhap quyen="GOP_Y.XU_LY"><GopY /></CanDangNhap> },
+  { path: '/can-lam-sang', element: <CanDangNhap quyen="CLS.THUC_HIEN"><HangChoCls /></CanDangNhap> },
   { path: '/bac-si/lich-kham', element: <CanDangNhap quyen="KHAM.THUC_HIEN"><LichKham /></CanDangNhap> },
   { path: '/bac-si/kham/:maLk', element: <CanDangNhap quyen={['KHAM.THUC_HIEN', 'KHAM.XEM']}><KhamBenh /></CanDangNhap> },
   { path: '/lich-lam-viec', element: <CanDangNhap quyen="LICH_LV.XEM"><LichLamViec /></CanDangNhap> },

@@ -39,6 +39,9 @@ public class KhamBenhService {
     private final ThongBaoService thongBao;
     private final NhatKyService nhatKy;
     private final TiepDonService tiepDon;
+    private final CanLamSangService canLamSang;
+    private final HoaDonService hoaDon;
+    private final HoanTienService hoanTien;
     private final TruyVan tv;
     private final DongHo dongHo;
     private final ObjectMapper json;
@@ -328,11 +331,13 @@ public class KhamBenhService {
 
     /**
      * Hủy phiếu chưa thực hiện. Nếu lượt đang chờ CLS mà không còn phiếu nào chưa xong thì đưa bệnh nhân
-     * về hàng chờ khám (Chờ CLS -> Đã có kết quả, theo vòng đời trong trigger).
+     * về đầu hàng chờ khám (Chờ CLS -> Đã có kết quả, theo vòng đời trong trigger). Phiếu đã tạm thu thì sinh
+     * đề nghị hoàn tiền (BR31).
      */
     @Transactional
     public void huyChiDinh(Integer maPCD, Integer maBS, String lyDo, Integer maTK) {
-        Map<String, Object> p = tv.mot("SELECT MaLK, TrangThai FROM PhieuChiDinh WHERE MaPCD = ? FOR UPDATE", maPCD);
+        Map<String, Object> p = tv.mot("SELECT MaLK, TrangThai, MaBL, BenhNhanTra FROM PhieuChiDinh WHERE MaPCD = ? FOR UPDATE",
+                maPCD);
         if (p == null) {
             throw new KhongTimThay("Không tìm thấy phiếu chỉ định");
         }
@@ -345,17 +350,18 @@ public class KhamBenhService {
             throw new LoiNghiepVu("Vui lòng nhập lý do hủy");
         }
         tv.capNhat("UPDATE PhieuChiDinh SET TrangThai = 'DA_HUY', LyDoHuy = ? WHERE MaPCD = ?", lyDo.strip(), maPCD);
-        if ("CHO_CLS".equals(lk.get("TrangThai"))
-                && tv.dem("SELECT COUNT(*) FROM PhieuChiDinh WHERE MaLK = ? AND TrangThai IN (?)", maLK, PHIEU_CHUA_XONG) == 0) {
-            tv.capNhat("UPDATE LuotKham SET TrangThai = 'DA_CO_KET_QUA' WHERE MaLK = ?", maLK);
-            tiepDon.capNhatThoiGianCho(maBS);
+        // BR31: phiếu đã tạm thu bị hủy trước khi thực hiện thì tạo đề nghị hoàn tiền cho lễ tân chi
+        if (p.get("MaBL") != null && ((BigDecimal) p.get("BenhNhanTra")).signum() > 0) {
+            hoanTien.taoDeNghi((Integer) p.get("MaBL"), null, maPCD, "HUY_PHIEU_CLS", lyDo.strip(),
+                    (BigDecimal) p.get("BenhNhanTra"), null);
         }
+        canLamSang.sauKhiCoKetQua(maLK);
         nhatKy.ghi(maTK, "HUY_CHI_DINH_CLS", "PhieuChiDinh", maPCD, lk.get("MaLichHen") + ": " + lyDo.strip());
     }
 
     // ================= Hoàn tất, ghi chú =================
 
-    /** UC8.10: chốt hồ sơ (BR06 không sửa được nữa), kết thúc lượt khám, báo bệnh nhân. */
+    /** UC8.10: chốt hồ sơ (BR06 không sửa được nữa), kết thúc lượt khám, báo bệnh nhân, lập hóa đơn (UC10.1). */
     @Transactional
     public void hoanTat(Integer maLK, Integer maBS, Integer maTK) {
         Map<String, Object> lk = luotCuaBacSi(maLK, maBS, true);
@@ -380,6 +386,7 @@ public class KhamBenhService {
                 ? " Hẹn tái khám ngày " + d.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + "." : "";
         thongBao.benhNhan((Integer) lk.get("MaBN"), "HOAN_TAT_KHAM", "Đã hoàn tất lượt khám",
                 "Kết quả khám, đơn thuốc và lời dặn đã có trong mục Hồ sơ sức khỏe." + taiKham, "LUOT_KHAM", maLK, true);
+        hoaDon.lapHoaDon(maLK);
         tiepDon.capNhatThoiGianCho(maBS);
     }
 
@@ -513,8 +520,9 @@ public class KhamBenhService {
     private List<Map<String, Object>> chiDinhCuaLuot(Integer maLK) {
         List<Map<String, Object>> ds = tv.ds("""
                 SELECT p.MaPCD, p.MaDV, dv.TenDV, dv.LoaiDV, ph.MaSoPhong, ph.TenPhong, p.YeuCau, p.GiaDichVu, p.BHYTChiTra,
-                       p.BenhNhanTra, p.TrangThai, p.LyDoHuy, p.ThoiDiemChiDinh, p.ThoiDiemCoKetQua,
-                       kq.MaKQ, kq.MoTa, kq.KetLuan, kq.NhanXet, kq.PhienBan, th.HoTen AS BacSiThucHien
+                       p.BenhNhanTra, p.TrangThai, p.LyDoHuy, p.GhiChu, p.ThoiDiemChiDinh, p.ThoiDiemCoKetQua,
+                       kq.MaKQ, kq.MoTa, kq.KetLuan, kq.NhanXet, kq.DaNhinAn, kq.CoSinhThiet, kq.SoMauSinhThiet,
+                       kq.ViTriSinhThiet, kq.PhienBan, kq.NgayCapNhat, th.HoTen AS BacSiThucHien
                 FROM PhieuChiDinh p JOIN DichVu dv ON dv.MaDV = p.MaDV JOIN Phong ph ON ph.MaPhong = p.MaPhong
                 LEFT JOIN KetQuaCLS kq ON kq.MaPCD = p.MaPCD LEFT JOIN NhanVien th ON th.MaNV = kq.MaBSThucHien
                 WHERE p.MaLK = ? ORDER BY p.ThoiDiemChiDinh, p.MaPCD""", maLK);
@@ -523,6 +531,7 @@ public class KhamBenhService {
                     SELECT ms.TenChiSo, ms.DonVi, ms.GioiHanDuoi, ms.GioiHanTren, k.GiaTri, k.DanhGia
                     FROM KetQuaChiSo k JOIN MauChiSo ms ON ms.MaChiSo = k.MaChiSo
                     WHERE k.MaKQ = ? ORDER BY ms.ThuTu""", p.get("MaKQ")));
+            p.put("Tep", p.get("MaKQ") == null ? List.of() : canLamSang.tepCuaKetQua((Integer) p.get("MaKQ")));
         }
         return ds;
     }

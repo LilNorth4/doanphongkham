@@ -1,10 +1,50 @@
-import { Descriptions, Empty, Flex, List, Table, Tag, Typography } from 'antd'
+import { DeleteOutlined, FilePdfOutlined } from '@ant-design/icons'
+import { Button, Descriptions, Empty, Flex, Image, List, Popconfirm, Table, Tag, Typography } from 'antd'
 import dayjs from 'dayjs'
-import type { HoSoBenhAn, LanKham, PhieuChiDinh } from '@/lib/api'
+import BangThichUng from '@/components/BangThichUng'
+import type { HoSoBenhAn, LanKham, PhieuChiDinh, TepKetQua } from '@/lib/api'
 import { TEN_LOAI_DV, thuNgay, TRANG_THAI_PHIEU_CLS } from '@/lib/hangSo'
 
 const MAU_DANH_GIA = { BINH_THUONG: undefined, CAO: 'red', THAP: 'orange' } as const
 const TEN_DANH_GIA = { BINH_THUONG: '', CAO: '↑ Cao', THAP: '↓ Thấp' } as const
+
+/** Ảnh (xem phóng to) và PDF đính kèm kết quả cận lâm sàng; có onXoa thì hiện nút xóa. */
+export function DsTep({ ds, onXoa }: { ds: TepKetQua[]; onXoa?: (t: TepKetQua) => void }) {
+  const anh = ds.filter((t) => t.LoaiTep !== 'PDF')
+  const pdf = ds.filter((t) => t.LoaiTep === 'PDF')
+  return (
+    <Flex vertical gap={8}>
+      {anh.length > 0 && (
+        <Image.PreviewGroup>
+          <Flex gap={8} wrap>
+            {anh.map((t) => (
+              <div key={t.MaTep} style={{ position: 'relative' }}>
+                <Image src={t.DuongDan} alt={t.MoTa ?? t.TenTep} width={104} height={104} style={{ objectFit: 'cover', borderRadius: 6 }} />
+                {onXoa && (
+                  <Popconfirm title="Xóa ảnh này?" okText="Xóa" cancelText="Đóng" onConfirm={() => onXoa(t)}>
+                    <Button size="small" danger icon={<DeleteOutlined />} aria-label={`Xóa ${t.TenTep}`}
+                      style={{ position: 'absolute', top: 4, right: 4 }} />
+                  </Popconfirm>
+                )}
+              </div>
+            ))}
+          </Flex>
+        </Image.PreviewGroup>
+      )}
+      {pdf.map((t) => (
+        <Flex key={t.MaTep} gap={8} align="center">
+          <FilePdfOutlined style={{ color: '#d4380d' }} />
+          <Typography.Link href={t.DuongDan} target="_blank" rel="noreferrer">{t.TenTep}</Typography.Link>
+          {onXoa && (
+            <Popconfirm title="Xóa tệp này?" okText="Xóa" cancelText="Đóng" onConfirm={() => onXoa(t)}>
+              <Button size="small" type="text" danger icon={<DeleteOutlined />} aria-label={`Xóa ${t.TenTep}`} />
+            </Popconfirm>
+          )}
+        </Flex>
+      ))}
+    </Flex>
+  )
+}
 
 /** Kết quả cận lâm sàng của từng phiếu: chỉ số xét nghiệm (đánh dấu bất thường) hoặc mô tả, kết luận. */
 export function DsKetQuaCls({ ds, anTrangThai }: { ds: PhieuChiDinh[]; anTrangThai?: boolean }) {
@@ -20,6 +60,9 @@ export function DsKetQuaCls({ ds, anTrangThai }: { ds: PhieuChiDinh[]; anTrangTh
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>Phòng {p.MaSoPhong}</Typography.Text>
           </Flex>
           {p.TrangThai === 'DA_HUY' && p.LyDoHuy && <Typography.Text type="secondary">Lý do hủy: {p.LyDoHuy}</Typography.Text>}
+          {!anTrangThai && p.GhiChu && (p.TrangThai === 'CHO_THUC_HIEN' || p.TrangThai === 'DANG_THUC_HIEN') && (
+            <div><Typography.Text type="warning">Phòng CLS hoãn: {p.GhiChu}</Typography.Text></div>
+          )}
           {p.ChiSo.length > 0 && (
             <Table size="small" pagination={false} rowKey="TenChiSo" style={{ marginTop: 8 }} dataSource={p.ChiSo}
               columns={[
@@ -43,9 +86,14 @@ export function DsKetQuaCls({ ds, anTrangThai }: { ds: PhieuChiDinh[]; anTrangTh
           {p.MoTa && <Typography.Paragraph style={{ whiteSpace: 'pre-line', margin: '6px 0 0' }}>{p.MoTa}</Typography.Paragraph>}
           {p.NhanXet && <div><Typography.Text type="secondary">Nhận xét: </Typography.Text>{p.NhanXet}</div>}
           {p.KetLuan && <div><Typography.Text type="secondary">Kết luận: </Typography.Text><Typography.Text strong>{p.KetLuan}</Typography.Text></div>}
-          {p.BacSiThucHien && (
+          {(p.CoSinhThiet === true || p.CoSinhThiet === 1) && (
+            <div><Typography.Text type="secondary">Sinh thiết: </Typography.Text>{p.SoMauSinhThiet} mẫu · {p.ViTriSinhThiet}</div>
+          )}
+          {p.Tep && p.Tep.length > 0 && <div style={{ marginTop: 6 }}><DsTep ds={p.Tep} /></div>}
+          {p.BacSiThucHien && p.TrangThai === 'CO_KET_QUA' && (
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               {p.BacSiThucHien}{p.ThoiDiemCoKetQua && ` · ${dayjs(p.ThoiDiemCoKetQua).format('HH:mm DD/MM/YYYY')}`}
+              {(p.PhienBan ?? 1) > 1 && p.NgayCapNhat && ` · điều chỉnh lúc ${dayjs(p.NgayCapNhat).format('HH:mm DD/MM')}`}
             </Typography.Text>
           )}
         </div>
@@ -57,7 +105,8 @@ export function DsKetQuaCls({ ds, anTrangThai }: { ds: PhieuChiDinh[]; anTrangTh
 export function BangDonThuoc({ don }: { don: HoSoBenhAn['DonThuoc'] }) {
   if (don.length === 0) return <Typography.Text type="secondary">Không kê đơn thuốc</Typography.Text>
   return (
-    <Table size="small" pagination={false} rowKey="MaThuoc" dataSource={don} scroll={{ x: 'max-content' }}
+    // Điện thoại: mỗi thuốc một thẻ (BangThichUng), không phải vuốt ngang để xem cách dùng
+    <BangThichUng size="small" pagination={false} rowKey="MaThuoc" dataSource={don} scroll={{ x: 'max-content' }}
       columns={[
         {
           title: 'Thuốc', key: 't',

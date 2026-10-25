@@ -111,8 +111,9 @@ export default function ChonKhungGio({ maCk, maBs, vangLai, value, onChange, boQ
   if (vangLai) return danhSachKhung
 
   if (ngayTrong === null) return <Skeleton active paragraph={{ rows: 6 }} />
-  // Có khiHetCho (đăng ký danh sách chờ) thì ngày đã kín vẫn chọn được, để hiện nút đăng ký chờ cho ngày đó
-  const chonDuoc = (d: Dayjs) => !!khiHetCho || conTrong(d)
+  // Có khiHetCho (đăng ký danh sách chờ) thì ngày đã kín vẫn chọn được, để hiện nút đăng ký chờ cho ngày đó.
+  // Ngày không có bác sĩ làm (Chủ nhật, ngày chưa xếp ca) thì không chọn được: không có gì để chờ.
+  const chonDuoc = (d: Dayjs) => conTrong(d) || (!!khiHetCho && soKhung.get(d.format('YYYY-MM-DD')) === 0)
   if (!ngayTrong.some((n) => Number(n.SoKhungTrong) > 0) && !khiHetCho) {
     return <Empty description="Không còn lịch trống trong 30 ngày tới" />
   }

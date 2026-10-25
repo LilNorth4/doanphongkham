@@ -1,10 +1,10 @@
 import {
-  AppstoreOutlined, AuditOutlined, CalendarOutlined, ClusterOutlined, FileProtectOutlined, CarryOutOutlined, EyeOutlined, FileSearchOutlined, FormOutlined, HomeOutlined, KeyOutlined,
+  AppstoreOutlined, AuditOutlined, BarChartOutlined, CalendarOutlined, ClusterOutlined, FileProtectOutlined, CarryOutOutlined, DollarOutlined, ExperimentOutlined, EyeOutlined, FileSearchOutlined, FormOutlined, HomeOutlined, KeyOutlined,
   LogoutOutlined, MenuOutlined, MonitorOutlined, MoreOutlined, PhoneOutlined, SafetyCertificateOutlined, ScheduleOutlined, SolutionOutlined,
-  TableOutlined, TeamOutlined, UserOutlined,
+  RollbackOutlined, TableOutlined, TeamOutlined, UserOutlined, WalletOutlined, CommentOutlined, LikeOutlined, StarOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
-import { Badge, Button, ConfigProvider, Drawer, Dropdown, Flex, Layout, Menu, Spin, type MenuProps } from 'antd'
+import { Badge, Button, ConfigProvider, Drawer, Dropdown, Flex, Layout, Menu, Space, Spin, Tag, Tooltip, type MenuProps } from 'antd'
 import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import AnhDaiDien from '@/components/AnhDaiDien'
@@ -12,7 +12,7 @@ import ChuongThongBao from '@/components/ChuongThongBao'
 import { useManHinhNho } from '@/hooks/manHinh'
 import { api } from '@/lib/api'
 import { usePhien } from '@/lib/auth'
-import { SU_KIEN_SO_CHO, SU_KIEN_SO_DANG_KY_CA, TEN_VAI_TRO, thuNgay } from '@/lib/hangSo'
+import { SU_KIEN_SO_CHO, SU_KIEN_SO_CLS, SU_KIEN_SO_DANG_KY_CA, SU_KIEN_SO_HOA_DON, SU_KIEN_SO_HOAN, SU_KIEN_SO_TAM_THU, SU_KIEN_SO_DANH_GIA, SU_KIEN_SO_GOP_Y, TEN_VAI_TRO, thuNgay } from '@/lib/hangSo'
 import Logo from './Logo'
 
 type MucMenu = Required<MenuProps>['items'][number]
@@ -35,6 +35,8 @@ function useSoDem(bat: boolean, tai: () => Promise<{ so_luong: number }>, suKien
   return so
 }
 
+const soChoDanhGia = () => api.danhGiaCuaToi().then((d) => ({ so_luong: d.ChoDanhGia.length }))
+
 const nhanSo = (ten: string, so: number): ReactNode => (
   <span className="menu-nhan">{ten}{so > 0 && <Badge count={so} size="small" />}</span>
 )
@@ -56,6 +58,17 @@ export default function AppLayout() {
   const duyetCa = co('LICH_LV.QUAN_LY')
   const soCho = useSoDem(laLeTan, api.soChoXacNhan, SU_KIEN_SO_CHO, 30_000)
   const soDangKyCa = useSoDem(duyetCa, api.soDangKyChoDuyet, SU_KIEN_SO_DANG_KY_CA, 60_000)
+  const thuTien = co('THANH_TOAN.THU')
+  const lamCls = co('CLS.THUC_HIEN')
+  const soTamThu = useSoDem(thuTien, api.soChoTamThu, SU_KIEN_SO_TAM_THU, 30_000)
+  const soHoaDon = useSoDem(thuTien, api.soChoThanhToan, SU_KIEN_SO_HOA_DON, 30_000)
+  const hoanTien = co('HOAN_TIEN.LAP') || co('HOAN_TIEN.DUYET')
+  const soHoan = useSoDem(hoanTien, api.soPhieuHoanCho, SU_KIEN_SO_HOAN, 60_000)
+  const soCls = useSoDem(lamCls, api.soChoCls, SU_KIEN_SO_CLS, 30_000)
+  const xuLyGopY = co('GOP_Y.XU_LY')
+  const soGopY = useSoDem(xuLyGopY, api.soGopYCho, SU_KIEN_SO_GOP_Y, 60_000)
+  const danhGia = co('DANH_GIA.GUI')
+  const soDanhGia = useSoDem(danhGia, soChoDanhGia, SU_KIEN_SO_DANH_GIA, 300_000)
 
   // Quyền có thể bị quản trị viên đổi trong lúc đang dùng (UC2.7): làm mới mỗi phút và khi quay lại tab
   useEffect(() => {
@@ -68,6 +81,10 @@ export default function AppLayout() {
     }
   }, [taiLai])
 
+  // Chế độ thử: hiện CSDL backend đang ghi, để thấy ngay khi chạy nhầm sang CSDL khác
+  const [csdl, setCsdl] = useState<string>()
+  useEffect(() => { api.cauHinh().then((c) => setCsdl(c.csdl)).catch(() => {}) }, [])
+
   if (!nguoiDung) return null
 
   const menu = useMemo<MucMenu[]>(() => [
@@ -76,9 +93,16 @@ export default function AppLayout() {
       co('LICH_HEN.DAT') && { key: '/dat-lich', icon: <CalendarOutlined />, label: 'Đặt lịch khám' },
       co('LICH_HEN.DAT') && { key: '/lich-hen-cua-toi', icon: <ScheduleOutlined />, label: 'Lịch hẹn của tôi' },
       co('HO_SO.XEM_CUA_MINH') && { key: '/ho-so-suc-khoe', icon: <FileProtectOutlined />, label: 'Hồ sơ sức khỏe' },
+      co('HO_SO.XEM_CUA_MINH') && { key: '/hoa-don', icon: <DollarOutlined />, label: 'Hóa đơn' },
+      danhGia && { key: '/danh-gia', icon: <StarOutlined />, label: nhanSo('Đánh giá', soDanhGia) },
+      danhGia && { key: '/gop-y', icon: <CommentOutlined />, label: 'Góp ý – Khiếu nại' },
       laLeTan && { key: '/le-tan/lich-hen', icon: <SolutionOutlined />, label: nhanSo('Quản lý lịch hẹn', soCho) },
       laLeTan && { key: '/le-tan/dat-lich', icon: <PhoneOutlined />, label: 'Đặt lịch hộ' },
+      thuTien && { key: '/le-tan/tam-thu', icon: <WalletOutlined />, label: nhanSo('Thu tạm thu CLS', soTamThu) },
+      thuTien && { key: '/le-tan/thanh-toan', icon: <DollarOutlined />, label: nhanSo('Thanh toán hóa đơn', soHoaDon) },
+      co('HOAN_TIEN.LAP') && { key: '/hoan-tien', icon: <RollbackOutlined />, label: nhanSo('Hoàn tiền', soHoan) },
       co('KHAM.THUC_HIEN') && { key: '/bac-si/lich-kham', icon: <FormOutlined />, label: 'Lịch khám' },
+      lamCls && { key: '/can-lam-sang', icon: <ExperimentOutlined />, label: nhanSo('Hàng chờ cận lâm sàng', soCls) },
     ]),
     ...nhom('LỊCH LÀM VIỆC', [
       co('LICH_LV.XEM') && { key: '/lich-lam-viec', icon: <TableOutlined />, label: 'Lịch làm việc' },
@@ -90,13 +114,18 @@ export default function AppLayout() {
       co('KHAM.XEM') && { key: '/giam-sat/lich-kham', icon: <MonitorOutlined />, label: 'Lịch khám bác sĩ' },
     ]),
     ...nhom('QUẢN TRỊ', [
+      co('THONG_KE.XEM') && { key: '/quan-ly/thong-ke', icon: <BarChartOutlined />, label: 'Thống kê' },
+      co('THONG_KE.XEM') && { key: '/quan-ly/danh-gia', icon: <LikeOutlined />, label: 'Báo cáo đánh giá' },
+      xuLyGopY && { key: '/quan-ly/gop-y', icon: <CommentOutlined />, label: nhanSo('Góp ý', soGopY) },
+      !thuTien && co('HOA_DON.HUY') && { key: '/le-tan/thanh-toan', icon: <DollarOutlined />, label: 'Hóa đơn' },
+      !co('HOAN_TIEN.LAP') && co('HOAN_TIEN.DUYET') && { key: '/hoan-tien', icon: <RollbackOutlined />, label: nhanSo('Duyệt hoàn tiền', soHoan) },
       co('TAI_KHOAN.QUAN_LY') && { key: '/quan-ly/tai-khoan', icon: <TeamOutlined />, label: 'Quản lý tài khoản' },
       co('VAI_TRO.QUAN_LY') && { key: '/quan-ly/phan-quyen', icon: <SafetyCertificateOutlined />, label: 'Phân quyền' },
       co('DANH_MUC.QUAN_LY') && { key: '/quan-ly/danh-muc', icon: <AppstoreOutlined />, label: 'Danh mục' },
       co('MAT_BANG.QUAN_LY') && { key: '/quan-ly/mat-bang', icon: <ClusterOutlined />, label: 'Sơ đồ mặt bằng' },
       co('NHAT_KY.XEM') && { key: '/quan-ly/nhat-ky', icon: <FileSearchOutlined />, label: 'Nhật ký hệ thống' },
     ]),
-  ], [co, duyetCa, laLeTan, soCho, soDangKyCa])
+  ], [co, danhGia, duyetCa, laLeTan, lamCls, soCho, soCls, soDangKyCa, soDanhGia, soGopY, soHoaDon, soHoan, soTamThu, thuTien, xuLyGopY])
 
   const menuTaiKhoan: MenuProps['items'] = [
     { key: 'thong-tin', icon: <UserOutlined />, label: 'Thông tin cá nhân' },
@@ -153,7 +182,18 @@ export default function AppLayout() {
               <Logo den="/" />
             </>
           ) : <span className="dau-trang-ngay">{thuNgay(dayjs())}</span>}
-          <span style={{ marginInlineStart: 'auto' }}><ChuongThongBao /></span>
+          <Space style={{ marginInlineStart: 'auto' }}>
+            {/* Điện thoại: chỉ hiện khi đang ghi nhầm CSDL, để không chiếm chỗ của logo */}
+            {csdl && (!nho || csdl !== 'phongkham') && (
+              <Tooltip title="Chế độ thử: dữ liệu nhập trên giao diện được lưu vào CSDL này">
+                <Tag color={csdl === 'phongkham' ? 'default' : 'orange'}
+                  style={{ marginInlineEnd: 0, maxWidth: nho ? 120 : undefined, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {nho ? csdl : `CSDL: ${csdl}`}
+                </Tag>
+              </Tooltip>
+            )}
+            <ChuongThongBao />
+          </Space>
         </Layout.Header>
         <Layout.Content className="noi-dung">
           {/* Điện thoại: thẻ nội dung bớt lề trong để còn chỗ cho dữ liệu */}

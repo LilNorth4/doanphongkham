@@ -63,9 +63,17 @@ public class XacThucController {
 
     static final Map<String, Object> OK = Map.of("ok", true);
 
+    /**
+     * Chế độ thử còn trả tên CSDL đang kết nối, để giao diện và chay_phongkham.bat phát hiện backend
+     * đang chạy nhầm CSDL (dữ liệu nhập vào sẽ không nằm trong CSDL bạn đang xem).
+     */
     @GetMapping("/cau-hinh")
     public Map<String, Object> cauHinh() {
-        return Map.of("che_do_thu", batCheDoThu());
+        if (!batCheDoThu()) {
+            return Map.of("che_do_thu", false);
+        }
+        String csdl = tv.giaTri("SELECT DATABASE()");
+        return Map.of("che_do_thu", true, "csdl", csdl == null ? "" : csdl);
     }
 
     @PostMapping("/auth/dang-ky")

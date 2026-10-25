@@ -153,7 +153,11 @@ public class DatLichService {
                        lk.TrangThaiBHYT, lk.MucHuong, lk.GioDuKienVaoKham, lk.NgayTao,
                        bn.MaBN, bn.HoTen AS BenhNhan, bn.SDT, bn.NgaySinh, bn.GioiTinh,
                        bs.MaNV AS MaBS, bs.HoTen AS BacSi, bs.HocHamHocVi, ck.MaCK, ck.TenCK,
-                       p.MaSoPhong, p.TenPhong
+                       p.MaSoPhong, p.TenPhong,
+                       (SELECT COUNT(*) FROM PhieuChiDinh pc WHERE pc.MaLK = lk.MaLK AND pc.TrangThai = 'CHO_THANH_TOAN')
+                           AS SoPhieuChoThu,
+                       (SELECT hd.MaHD FROM HoaDon hd WHERE hd.MaLK = lk.MaLK AND hd.TrangThai = 'CHUA_THANH_TOAN' LIMIT 1)
+                           AS MaHDChuaThu
                 FROM LuotKham lk JOIN KhungGio kg ON kg.MaKG = lk.MaKG
                 JOIN CaLamViec ca ON ca.MaCa = kg.MaCa JOIN Phong p ON p.MaPhong = ca.MaPhong
                 JOIN BenhNhan bn ON bn.MaBN = lk.MaBN

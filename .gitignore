@@ -16,10 +16,12 @@ Thumbs.db
 # Ảnh người dùng tải lên khi chạy backend trên máy
 du-lieu-tai-len/
 
-# Cơ sở dữ liệu: script tạo bảng, dữ liệu thử, file SQL (không đưa lên repo)
-backend/src/main/resources/db/
+# Cơ sở dữ liệu: dữ liệu thử, file SQL rời không đưa lên repo; riêng script Flyway tạo bảng (db/migration) thì có
+backend/src/main/resources/db/*
+!backend/src/main/resources/db/migration/
 database/
 *.sql
+!backend/src/main/resources/db/migration/*.sql
 
 # Cấu hình riêng của Claude Code trên máy
 .claude/

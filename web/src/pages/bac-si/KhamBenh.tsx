@@ -98,6 +98,13 @@ export default function KhamBenh() {
   }, [maLk, napForm])
 
   useEffect(() => { tai() }, [tai])
+  // Bệnh nhân đang đi làm CLS: tự tải lại để thấy kết quả phòng CLS vừa trả
+  const choCls = lk?.TrangThai === 'CHO_CLS'
+  useEffect(() => {
+    if (!choCls) return
+    const id = setInterval(() => tai(), 30_000)
+    return () => clearInterval(id)
+  }, [choCls, tai])
   useEffect(() => {
     if (dangKham && duocKeDon && dsThuoc.length === 0) api.dsThuoc().then(setDsThuoc).catch(() => {})
   }, [dangKham, duocKeDon, dsThuoc.length])

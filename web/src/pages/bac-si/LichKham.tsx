@@ -7,7 +7,7 @@ import BangThichUng from '@/components/BangThichUng'
 import { useManHinhNho } from '@/hooks/manHinh'
 import { usePhien } from '@/lib/auth'
 import { api, LoiApi, type BacSi, type LichHen } from '@/lib/api'
-import { TRANG_THAI_LICH_HEN, tuoi } from '@/lib/hangSo'
+import { thuNgay, TRANG_THAI_LICH_HEN, tuoi } from '@/lib/hangSo'
 
 const DA_DEN = ['DA_CHECK_IN', 'DANG_KHAM', 'CHO_CLS', 'DA_CO_KET_QUA', 'HOAN_THANH']
 // Đã có hồ sơ bệnh án (tạo khi gọi vào khám lần đầu)
@@ -185,7 +185,7 @@ export default function LichKham() {
           )}
           <Space.Compact>
             <Button icon={<LeftOutlined />} onClick={() => setNgay(ngay.subtract(1, 'day'))} aria-label="Ngày trước" />
-            <DatePicker value={ngay} onChange={(d) => d && setNgay(d)} format={nho ? 'dd DD/MM' : 'dddd, DD/MM/YYYY'} allowClear={false}
+            <DatePicker value={ngay} onChange={(d) => d && setNgay(d)} format={nho ? 'dd DD/MM' : (d) => thuNgay(d)} allowClear={false}
               style={{ width: nho ? 120 : 210 }} />
             <Button icon={<RightOutlined />} onClick={() => setNgay(ngay.add(1, 'day'))} aria-label="Ngày sau" />
           </Space.Compact>

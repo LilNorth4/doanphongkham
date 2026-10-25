@@ -139,6 +139,9 @@ export interface KhungGio {
 
 export interface LichHen {
   MaLK: number
+  /** Lễ tân: số phiếu CLS chờ tạm thu, hóa đơn cuối lượt chưa thanh toán (để hiện nút thu nhanh) */
+  SoPhieuChoThu?: number
+  MaHDChuaThu?: number | null
   MaLichHen: string
   NgayKham: string
   GioBatDau: string
@@ -416,15 +419,302 @@ export interface PhieuChiDinh {
   BenhNhanTra: string
   TrangThai: TrangThaiPhieuCls
   LyDoHuy: string | null
+  /** Lý do phòng CLS hoãn phiếu (bệnh nhân vắng, chưa nhịn ăn...) */
+  GhiChu?: string | null
   ThoiDiemChiDinh: string
   ThoiDiemCoKetQua: string | null
   MaKQ: number | null
   MoTa: string | null
   KetLuan: string | null
   NhanXet: string | null
+  DaNhinAn?: boolean | number | null
+  CoSinhThiet?: boolean | number | null
+  SoMauSinhThiet?: number | null
+  ViTriSinhThiet?: string | null
+  PhienBan?: number | null
+  NgayCapNhat?: string | null
   BacSiThucHien: string | null
   ChiSo: { TenChiSo: string; DonVi: string | null; GioiHanDuoi: string | null; GioiHanTren: string | null; GiaTri: string
     DanhGia: 'BINH_THUONG' | 'CAO' | 'THAP' }[]
+  Tep?: TepKetQua[]
+}
+
+export interface TepKetQua {
+  MaTep: number; DuongDan: string; TenTep: string; LoaiTep: 'JPG' | 'PNG' | 'PDF'; KichThuoc: number
+  MoTa: string | null; ThoiGian?: string
+}
+
+// ---------- Thu tạm thu (gói 10) ----------
+export type HinhThucThu = 'TIEN_MAT' | 'CHUYEN_KHOAN'
+export type HinhThucHoaDon = HinhThucThu | 'MOMO'
+
+// ---------- Hóa đơn cuối lượt khám, MoMo (gói 10) ----------
+export interface DongHoaDon {
+  MaHD: number
+  MaSoHoaDon: string
+  MaLK: number
+  MaLichHen: string
+  NgayKham: string
+  HoTen?: string
+  NgaySinh?: string | null
+  GioiTinh?: 'NAM' | 'NU' | null
+  SDT?: string | null
+  BacSi: string
+  TenCK: string | null
+  NgayLap: string
+  TongTien: string
+  BHYTChiTra: string
+  DaTamThu: string
+  ConPhaiThu: string
+  TrangThai: 'CHUA_THANH_TOAN' | 'DA_THANH_TOAN' | 'DA_HUY'
+  HinhThuc: HinhThucHoaDon | null
+  NgayThanhToan: string | null
+  ThuNgan?: string | null
+}
+
+export interface GiaoDichMoMo {
+  MaDonMoMo: string; MaHD?: number; SoTien: string; TrangThai: 'CHO_THANH_TOAN' | 'THANH_CONG' | 'THAT_BAI'
+  MaGiaoDichMoMo: number | null; ThongDiep: string | null; ThoiDiemTao?: string; ThoiDiemCapNhat?: string | null
+  MaSoHoaDon?: string; TrangThaiHoaDon?: DongHoaDon['TrangThai']
+}
+
+export interface HoaDon extends DongHoaDon {
+  MaBN: number
+  LyDoHuy: string | null
+  NguoiHuy: string | null
+  MaSoHoaDonGoc: string | null
+  HoaDonThayThe: string | null
+  PhieuHoanTien: { MaPHT: number; MaSoPhieu: string; LyDo: LyDoHoan; SoTien: string; TrangThai: TrangThaiHoan
+    ThoiDiemLap: string; ThoiDiemHoan: string | null; MaChungTu: string }[]
+  TrangThaiBHYT: LichHen['TrangThaiBHYT']
+  MucHuong: number | null
+  TienKhachDua: string | null
+  ChiTiet: {
+    MaCTHD: number; LoaiMuc: 'KHAM' | 'CLS' | 'THUOC'; NoiDung: string; SoLuong: number; GiaDichVu: string
+    GiaBHYT: string | null; ThanhTien: string; BHYTChiTra: string; BenhNhanTra: string; DaTamThu: boolean | number
+  }[]
+  GiaoDichMoMo: GiaoDichMoMo[]
+  PhongKham: { TenPhongKham: string; DiaChi: string; Hotline: string }
+  /** Đang dùng môi trường thử của MoMo (không trừ tiền thật) */
+  MoMoThu: boolean
+}
+
+export interface LenhMoMo { ma_don: string; pay_url: string; so_tien: string | number }
+
+// ---------- Hoàn tiền (UC10.4, BR31) ----------
+// ---------- Đánh giá, góp ý (gói 12) ----------
+export type CamXuc = 'TICH_CUC' | 'TRUNG_TINH' | 'TIEU_CUC'
+export type MucDoNghiemTrong = 'THAP' | 'TRUNG_BINH' | 'CAO'
+export type CotTieuChi = 'DiemThoiGianCho' | 'DiemThuTucTiepDon' | 'DiemThaiDoNhanVien' | 'DiemCoSoVatChat' | 'DiemDichVuCLS' | 'DiemChiPhi'
+export interface TepDinhKem { MaTep: number; DuongDan: string; TenTep: string; LoaiTep?: string; KichThuoc?: number }
+export interface LuotChoDanhGia {
+  MaLK: number; MaLichHen: string; NgayKham: string; BacSi: string; HocHamHocVi: string | null; TenCK: string | null
+  NgayThanhToan: string; HanDanhGia: string
+}
+export type DanhGia = Partial<Record<CotTieuChi, number | null>> & {
+  MaDG: number; MaLK: number; MaBS: number; DiemBacSi: number | null; NhanXetBacSi: string | null; NhanXetDichVu: string | null
+  ThoiGian: string; TrangThaiPhanTich: 'CHUA_PHAN_TICH' | 'DA_PHAN_TICH'; CamXuc: CamXuc | null; ChuDe: string[] | null
+  MucDoNghiemTrong: MucDoNghiemTrong | null; Anh: TepDinhKem[]
+  MaLichHen?: string; NgayKham?: string; BacSi?: string; TenCK?: string | null; BenhNhan?: string
+}
+export interface BieuMauDanhGia {
+  MaLK: number; MaLichHen: string; NgayKham: string; TrangThai: string; BacSi: string; HocHamHocVi: string | null
+  AnhDaiDien: string | null; TenCK: string | null; NgayThanhToan: string | null; HanDanhGia: string | null; SoCLS: number
+  DanhGia: DanhGia | null; LyDoKhongDuoc: string | null; TieuChi: Record<CotTieuChi, string>
+}
+export interface BaoCaoDanhGia {
+  TongQuan: Partial<Record<CotTieuChi, number | null>> & { SoDanhGia: number; DiemBacSi: number | null; TichCuc: number
+    TrungTinh: number; TieuCuc: number; ChuaPhanTich: number }
+  TheoThang: { Thang: string; SoDanhGia: number; DiemBacSi: number | null; DiemDichVu: number | null; TichCuc: number; TieuCuc: number }[]
+  ChuDe: { ChuDe: string; TichCuc: number; TrungTinh: number; TieuCuc: number }[]
+  BacSi: { MaNV: number; HoTen: string; TenCK: string | null; SoDanhGia: number; DiemBacSi: number | null; TieuCuc: number }[]
+  TongHop: { CoTongHop: true; MoDau: string; DiemManh: string[]; CanCaiThien: string[] } | { CoTongHop: false; LyDo: string }
+}
+export type LoaiGopY = 'GOP_Y' | 'KHIEU_NAI'
+export type TrangThaiGopY = 'MOI' | 'DANG_XU_LY' | 'DA_PHAN_HOI' | 'DA_DONG'
+export interface DongGopY {
+  MaPhieu: number; MaSoPhieu: string; Loai: LoaiGopY; ChuDe: string; TrangThai: TrangThaiGopY; ThoiDiemGui: string
+  HanPhanHoi: string; ThoiDiemPhanHoi: string | null; ThoiDiemDong?: string | null; MaLichHen: string | null
+  CamXuc?: CamXuc | null; MucDoNghiemTrong?: MucDoNghiemTrong | null; HoTen?: string; SDT?: string; TomTat?: string; QuaHan?: number
+}
+export interface TraoDoiGopY {
+  MaTD: number; Loai: 'PHAN_HOI' | 'BO_SUNG' | 'GHI_CHU_NOI_BO'; NoiDung: string; ThoiGian: string; CuaBenhNhan: number; NguoiGui: string
+}
+export interface PhieuGopY extends DongGopY {
+  NoiDung: string; MaLK: number | null; NgayKham: string | null; BacSi: string | null; TenCK: string | null
+  TrangThaiLuot: string | null; HoTen: string; SDT: string; EmailBN: string | null; QuaHan: number
+  TraoDoi: TraoDoiGopY[]; Tep: TepDinhKem[]
+}
+
+export type LyDoHoan = 'HUY_PHIEU_CLS' | 'BHYT_XAC_MINH' | 'HOA_DON_THAY_THE' | 'CHUYEN_KHOAN_THUA' | 'KHAC'
+export type TrangThaiHoan = 'CHO_DUYET' | 'CHO_HOAN' | 'DA_HOAN' | 'TU_CHOI'
+
+export interface DongPhieuHoan {
+  MaPHT: number; MaSoPhieu: string; MaBL: number | null; MaHD: number | null; MaChungTu: string; LyDo: LyDoHoan
+  GhiChu: string | null; SoTien: string; TrangThai: TrangThaiHoan; ThoiDiemLap: string; HinhThuc: HinhThucThu | null
+  ThoiDiemHoan: string | null; LyDoTuChoi: string | null; HoTen: string; SDT: string | null; MaLichHen: string
+  TenDV: string | null
+}
+
+export interface PhieuHoan extends DongPhieuHoan {
+  NganHang: string | null; SoTaiKhoan: string | null; TenTaiKhoan: string | null; NguoiLap: string | null
+  NguoiDuyet: string | null; ThoiDiemDuyet: string | null; ThuNgan: string | null
+  ChungTu: { Loai: 'BIEN_LAI' | 'HOA_DON'; MaSo: string; DaThu: string; DaHoan: string; TrangThai: string
+    HinhThuc: HinhThucHoaDon | null; NgayThu: string | null; MaLichHen: string; HoTen: string; SDT: string | null }
+  PhongKham: { TenPhongKham: string; DiaChi: string; Hotline: string }
+}
+
+// ---------- Thống kê (UC13.1, 13.2) ----------
+export type LoaiThongKe = 'LUOT_KHAM' | 'DOANH_THU' | 'HUY_VANG' | 'HIEU_SUAT' | 'THOI_GIAN_CHO'
+export interface DoanhThu { TamThu: number; HoaDon: number; HoanTien: number; Thuan: number }
+export interface TongQuan {
+  Ngay: string
+  LuotKham: { HomNay: number; HoanThanhHomNay: number; Thang: number; HuyThang: number; VangThang: number; LichThang: number }
+  LichMoiTheoKenh: { KenhDat: KenhDat; HomNay: number; Thang: number }[]
+  DoanhThuHomNay: DoanhThu
+  DoanhThuThang: DoanhThu
+  CanXuLy: { GopYQuaHan: number; MoMoChuaDoiSoat: number; HoanChoDuyet: number; HoanChoChi: number; HoaDonChuaThu: number }
+  BayNgay: { Ngay: string; DaDen: number; HoanThanh: number; HuyVang: number }[]
+}
+/** Kết quả thống kê: các bảng có cột tùy loại (số liệu dạng number). */
+export type DongThongKe = Record<string, string | number | null>
+export interface KetQuaThongKe {
+  Loai: LoaiThongKe; TuNgay: string; DenNgay: string; TongHop?: DongThongKe
+  TheoNgay?: DongThongKe[]; TheoChuyenKhoa?: DongThongKe[]; TheoKenh?: DongThongKe[]; TheoHinhThuc?: DongThongKe[]
+  TheoBacSi?: DongThongKe[]
+}
+
+export interface LuotChoTamThu {
+  MaLK: number
+  MaLichHen: string
+  NgayKham: string
+  TrangThaiBHYT: LichHen['TrangThaiBHYT']
+  MucHuong: number | null
+  MaBN: number
+  HoTen: string
+  NgaySinh: string | null
+  GioiTinh: 'NAM' | 'NU' | null
+  SDT: string | null
+  BacSi: string
+  SoPhieu: number
+  TongGia: string
+  BHYTChiTra: string
+  SoTienPhaiThu: string
+  ThoiDiemChiDinh: string
+  Phieu: {
+    MaPCD: number; TenDV: string; LoaiDV: PhieuChiDinh['LoaiDV']; MaSoPhong: string; TenPhong: string
+    GiaDichVu: string; GiaBHYT: string | null; BHYTChiTra: string; BenhNhanTra: string; ThoiDiemChiDinh: string
+    YeuCauNhinAn: boolean | number
+  }[]
+}
+
+export interface BienLai {
+  MaBL: number
+  MaSoBienLai: string
+  MaLK: number
+  TongTien: string
+  HinhThuc: HinhThucThu
+  TienKhachDua: string | null
+  TienThua: string | null
+  ThoiDiemThu: string
+  TrangThai: 'DA_THU' | 'DA_HUY'
+  ThuNgan: string
+  MaLichHen: string
+  HoTen: string
+  NgaySinh: string | null
+  GioiTinh: 'NAM' | 'NU' | null
+  SDT: string | null
+  BacSi: string
+  Phieu: { MaPCD: number; TenDV: string; MaSoPhong: string; TenPhong: string; GiaDichVu: string; BHYTChiTra: string
+    BenhNhanTra: string; TrangThai: TrangThaiPhieuCls }[]
+  PhongKham: { TenPhongKham: string; DiaChi: string; Hotline: string }
+}
+
+export interface DongBienLai {
+  MaBL: number; MaSoBienLai: string; MaLK: number; MaLichHen: string; HoTen: string; TongTien: string
+  HinhThuc: HinhThucThu; ThoiDiemThu: string; TrangThai: 'DA_THU' | 'DA_HUY'; ThuNgan: string; SoPhieu: number
+}
+
+// ---------- Cận lâm sàng (gói 14) ----------
+export interface PhongCls { MaPhong: number; MaSoPhong: string; TenPhong: string; LoaiPhong: LoaiPhong }
+
+export interface PhieuChoCls {
+  MaPCD: number
+  MaLK: number
+  TrangThai: 'CHO_THUC_HIEN' | 'DANG_THUC_HIEN'
+  ThoiDiemVaoHangCho: string | null
+  ThoiDiemBatDau: string | null
+  SoLanBoQua: number
+  GhiChu: string | null
+  YeuCau: string | null
+  ChanDoanSoBo: string | null
+  TenDV: string
+  LoaiDV: PhieuChiDinh['LoaiDV']
+  YeuCauNhinAn: boolean | number
+  ThoiGianThucHien: number | null
+  MaLichHen: string
+  HoTen: string
+  NgaySinh: string | null
+  GioiTinh: 'NAM' | 'NU' | null
+  BacSiChiDinh: string
+  BacSiThucHien: string | null
+  /** Dịch vụ cùng lượt phải làm trước (BR18) */
+  CanLamTruoc: string | null
+}
+
+export interface PhieuDaXongCls {
+  MaPCD: number; MaLK: number; ThoiDiemCoKetQua: string; TenDV: string; LoaiDV: PhieuChiDinh['LoaiDV']; MaLichHen: string
+  TrangThaiLuot: TrangThaiLichHen; HoTen: string; NgaySinh: string | null; GioiTinh: 'NAM' | 'NU' | null
+  KetLuan: string | null; NhanXet: string | null; PhienBan: number; BacSiThucHien: string | null
+}
+
+export interface HangChoCls { Phong: PhongCls; DangCho: PhieuChoCls[]; DaXong: PhieuDaXongCls[] }
+
+export interface ChiTietPhieuCls {
+  MaPCD: number
+  MaLK: number
+  MaDV: number
+  TrangThai: TrangThaiPhieuCls
+  YeuCau: string | null
+  ChanDoanSoBo: string | null
+  GhiChu: string | null
+  SoLanBoQua: number
+  TenDV: string
+  LoaiDV: PhieuChiDinh['LoaiDV']
+  MauKetQua: string | null
+  YeuCauNhinAn: boolean | number
+  MaSoPhong: string
+  TenPhong: string
+  MaLichHen: string
+  TrangThaiLuot: TrangThaiLichHen
+  BacSiChiDinh: string
+  CanLamTruoc: string | null
+  BenhNhan: Pick<BenhNhan, 'MaBN' | 'HoTen' | 'NgaySinh' | 'GioiTinh' | 'SDT' | 'DiUng'>
+  MauChiSo: { MaChiSo: number; TenChiSo: string; DonVi: string | null; GioiHanDuoi: string | null
+    GioiHanTren: string | null; BatBuoc: boolean | number }[]
+  KetQua: null | {
+    MaKQ: number; MoTa: string | null; KetLuan: string | null; NhanXet: string | null
+    DaNhinAn: boolean | number | null; DaKyDongY: boolean | number | null; CoSinhThiet: boolean | number | null
+    SoMauSinhThiet: number | null; ViTriSinhThiet: string | null; PhienBan: number; ThoiGianTra: string
+    NgayCapNhat: string | null; BacSiThucHien: string
+    ChiSo: (PhieuChiDinh['ChiSo'][number] & { MaChiSo: number })[]
+    Tep: TepKetQua[]
+    LichSu: { PhienBan: number; NoiDungCu: string; LyDoDieuChinh: string; ThoiGian: string; NguoiSua: string }[]
+  }
+}
+
+export interface NhapKetQuaCls {
+  mo_ta?: string | null
+  ket_luan?: string | null
+  nhan_xet?: string | null
+  chi_so?: { ma_chi_so: number; gia_tri: number }[]
+  da_nhin_an?: boolean | null
+  da_ky_dong_y?: boolean | null
+  co_sinh_thiet?: boolean | null
+  so_mau_sinh_thiet?: number | null
+  vi_tri_sinh_thiet?: string | null
+  /** Bắt buộc khi điều chỉnh kết quả đã trả (UC14.7) */
+  ly_do_dieu_chinh?: string
 }
 
 export interface TomTatTienSu {
@@ -647,7 +937,8 @@ function query(thamSo: Record<string, GiaTriQuery>) {
 }
 
 export const api = {
-  cauHinh: () => goi<{ che_do_thu: boolean }>('/cau-hinh'),
+  /** csdl chỉ có khi backend bật chế độ thử */
+  cauHinh: () => goi<{ che_do_thu: boolean; csdl?: string }>('/cau-hinh'),
 
   dangKy: (b: DangKyBenhNhan) => goi<{ ma_tk: number }>('/auth/dang-ky', 'POST', b),
   xacThucEmail: (dinh_danh: string, ma_otp: string) =>
@@ -758,6 +1049,105 @@ export const api = {
   // Hồ sơ sức khỏe của bệnh nhân
   hoSoSucKhoe: () => goi<DongHoSoSucKhoe[]>('/ho-so-suc-khoe'),
   chiTietHoSoSucKhoe: (maLk: number) => goi<LanKham>(`/ho-so-suc-khoe/${maLk}`),
+
+  // Thu tạm thu cận lâm sàng
+  dsChoTamThu: (tu_khoa?: string) => goi<LuotChoTamThu[]>(`/thu-ngan/tam-thu${query({ tu_khoa })}`),
+  soChoTamThu: () => goi<{ so_luong: number }>('/thu-ngan/tam-thu/so-cho'),
+  tamThu: (b: { ma_lk: number; ma_pcd: number[]; hinh_thuc: HinhThucThu; tien_khach_dua?: number | null }) =>
+    goi<BienLai>('/thu-ngan/tam-thu', 'POST', b),
+  dsBienLai: (ngay?: string) => goi<DongBienLai[]>(`/thu-ngan/bien-lai${query({ ngay })}`),
+  bienLai: (maBl: number) => goi<BienLai>(`/thu-ngan/bien-lai/${maBl}`),
+  taiKhoanNhan: () => goi<Pick<ThongTinPhongKham, 'MaNganHang' | 'SoTaiKhoan' | 'TenTaiKhoan'>>('/thu-ngan/tai-khoan-nhan'),
+
+  // Cận lâm sàng
+  hangChoCls: () => goi<HangChoCls>('/cls/hang-cho'),
+  soChoCls: () => goi<{ so_luong: number }>('/cls/hang-cho/so-cho'),
+  chiTietPhieuCls: (maPcd: number) => goi<ChiTietPhieuCls>(`/cls/phieu/${maPcd}`),
+  batDauCls: (maPcd: number) => goi(`/cls/phieu/${maPcd}/bat-dau`, 'POST'),
+  hoanCls: (maPcd: number, ly_do: string) => goi(`/cls/phieu/${maPcd}/hoan`, 'POST', { ly_do }),
+  traKetQuaCls: (maPcd: number, b: NhapKetQuaCls) => goi<{ ma_kq: number }>(`/cls/phieu/${maPcd}/ket-qua`, 'POST', b),
+  capNhatKetQuaCls: (maPcd: number, b: NhapKetQuaCls) => goi(`/cls/phieu/${maPcd}/ket-qua`, 'PUT', b),
+  themTepCls: (maPcd: number, tep: File, mo_ta?: string) => {
+    const f = new FormData()
+    f.append('tep', tep)
+    if (mo_ta) f.append('mo_ta', mo_ta)
+    return goi<TepKetQua>(`/cls/phieu/${maPcd}/tep`, 'POST', f)
+  },
+  xoaTepCls: (maTep: number) => goi(`/cls/tep/${maTep}`, 'DELETE'),
+
+  // Hóa đơn, thanh toán MoMo
+  dsHoaDon: (loc: { trang_thai?: 'CHUA_THANH_TOAN' | 'DA_THANH_TOAN' | 'DA_HUY'; ngay?: string; tu_khoa?: string }) =>
+    goi<DongHoaDon[]>(`/thanh-toan/hoa-don${query(loc)}`),
+  soChoThanhToan: () => goi<{ so_luong: number }>('/thanh-toan/hoa-don/so-cho'),
+  hoaDon: (maHd: number) => goi<HoaDon>(`/thanh-toan/hoa-don/${maHd}`),
+  thuHoaDon: (maHd: number, b: { hinh_thuc: HinhThucThu; tien_khach_dua?: number | null }) =>
+    goi<HoaDon>(`/thanh-toan/hoa-don/${maHd}/thu`, 'POST', b),
+  momoTaiQuay: (maHd: number) => goi<LenhMoMo>(`/thanh-toan/hoa-don/${maHd}/momo`, 'POST'),
+  hoaDonCuaToi: () => goi<DongHoaDon[]>('/thanh-toan/cua-toi'),
+  hoaDonCuaToiChiTiet: (maHd: number) => goi<HoaDon>(`/thanh-toan/cua-toi/${maHd}`),
+  momoCuaToi: (maHd: number) => goi<LenhMoMo>(`/thanh-toan/cua-toi/${maHd}/momo`, 'POST'),
+  trangThaiMoMo: (maDon: string) => goi<GiaoDichMoMo>(`/thanh-toan/momo/${encodeURIComponent(maDon)}`),
+  ketQuaMoMo: (thamSo: Record<string, string>) => goi<GiaoDichMoMo>('/thanh-toan/momo/ket-qua', 'POST', thamSo),
+  huyHoaDon: (maHd: number, ly_do: string) => goi<HoaDon>(`/thanh-toan/hoa-don/${maHd}/huy`, 'POST', { ly_do }),
+
+  // Hoàn tiền
+  dsPhieuHoan: (loc: { trang_thai?: string[]; tu_khoa?: string }) => goi<DongPhieuHoan[]>(`/hoan-tien${query(loc)}`),
+  soPhieuHoanCho: () => goi<{ so_luong: number }>('/hoan-tien/so-cho'),
+  phieuHoan: (ma: number) => goi<PhieuHoan>(`/hoan-tien/${ma}`),
+  lapPhieuHoan: (b: { ma_bl?: number; ma_hd?: number; ly_do: LyDoHoan; ghi_chu?: string; so_tien: number }) =>
+    goi<{ ma_pht: number }>('/hoan-tien', 'POST', b),
+  duyetPhieuHoan: (ma: number, dong_y: boolean, ly_do?: string) => goi(`/hoan-tien/${ma}/duyet`, 'POST', { dong_y, ly_do }),
+  chiPhieuHoan: (ma: number, b: { hinh_thuc: HinhThucThu; ngan_hang?: string; so_tai_khoan?: string; ten_tai_khoan?: string }) =>
+    goi<PhieuHoan>(`/hoan-tien/${ma}/hoan`, 'POST', b),
+
+  // Đánh giá sau khám, báo cáo đánh giá
+  danhGiaCuaToi: () => goi<{ ChoDanhGia: LuotChoDanhGia[]; DaDanhGia: DanhGia[] }>('/danh-gia/cua-toi'),
+  bieuMauDanhGia: (maLk: number) => goi<BieuMauDanhGia>(`/danh-gia/luot/${maLk}`),
+  guiDanhGia: (maLk: number, b: { diem_bac_si: number; nhan_xet_bac_si?: string; nhan_xet_dich_vu?: string;
+    diem: Partial<Record<CotTieuChi, number>> }, anh: File[]) => {
+    const f = new FormData()
+    f.append('diem_bac_si', String(b.diem_bac_si))
+    if (b.nhan_xet_bac_si) f.append('nhan_xet_bac_si', b.nhan_xet_bac_si)
+    if (b.nhan_xet_dich_vu) f.append('nhan_xet_dich_vu', b.nhan_xet_dich_vu)
+    Object.entries(b.diem).forEach(([cot, d]) => { if (d) f.append(cot, String(d)) })
+    anh.forEach((a) => f.append('anh', a))
+    return goi<{ ma_dg: number }>(`/danh-gia/luot/${maLk}`, 'POST', f)
+  },
+  baoCaoDanhGia: (loc: { tu_ngay: string; den_ngay: string; ma_ck?: number; ma_bs?: number }) =>
+    goi<BaoCaoDanhGia>(`/danh-gia/bao-cao${query(loc)}`),
+  dsDanhGia: (loc: { tu_ngay: string; den_ngay: string; ma_ck?: number; ma_bs?: number; chu_de?: string; cam_xuc?: CamXuc }) =>
+    goi<DanhGia[]>(`/danh-gia${query(loc)}`),
+  phanTichDanhGia: () => goi<{ so_luong: number }>('/danh-gia/phan-tich', 'POST'),
+
+  // Góp ý, khiếu nại
+  guiGopY: (b: { loai: LoaiGopY; chu_de: string; ma_lk?: number; noi_dung: string }, tep: File[]) => {
+    const f = new FormData()
+    f.append('loai', b.loai)
+    f.append('chu_de', b.chu_de)
+    if (b.ma_lk) f.append('ma_lk', String(b.ma_lk))
+    f.append('noi_dung', b.noi_dung)
+    tep.forEach((t) => f.append('tep', t))
+    return goi<{ ma_phieu: number; ma_so_phieu: string; han_phan_hoi: string }>('/gop-y', 'POST', f)
+  },
+  gopYCuaToi: () => goi<DongGopY[]>('/gop-y/cua-toi'),
+  luotKhamGopY: () =>
+    goi<{ MaLK: number; MaLichHen: string; NgayKham: string; BacSi: string; TenCK: string | null }[]>('/gop-y/cua-toi/luot-kham'),
+  phieuGopYCuaToi: (ma: number) => goi<PhieuGopY>(`/gop-y/cua-toi/${ma}`),
+  boSungGopY: (ma: number, noi_dung: string) => goi(`/gop-y/cua-toi/${ma}/bo-sung`, 'POST', { noi_dung }),
+  haiLongGopY: (ma: number) => goi(`/gop-y/cua-toi/${ma}/hai-long`, 'POST'),
+  dsGopY: (loc: { loai?: LoaiGopY; trang_thai?: TrangThaiGopY[]; chu_de?: string; muc_do?: MucDoNghiemTrong; qua_han?: boolean;
+    tu_khoa?: string }) => goi<DongGopY[]>(`/gop-y${query(loc)}`),
+  soGopYCho: () => goi<{ so_luong: number; qua_han: number }>('/gop-y/so-cho'),
+  chuDeGopY: () => goi<string[]>('/gop-y/chu-de'),
+  phieuGopY: (ma: number) => goi<PhieuGopY>(`/gop-y/${ma}`),
+  tiepNhanGopY: (ma: number) => goi(`/gop-y/${ma}/tiep-nhan`, 'POST'),
+  phanHoiGopY: (ma: number, noi_dung: string) => goi(`/gop-y/${ma}/phan-hoi`, 'POST', { noi_dung }),
+  ghiChuGopY: (ma: number, noi_dung: string) => goi(`/gop-y/${ma}/ghi-chu`, 'POST', { noi_dung }),
+
+  // Thống kê
+  tongQuan: () => goi<TongQuan>('/thong-ke/tong-quan'),
+  thongKe: (loai: LoaiThongKe, loc: { tu_ngay: string; den_ngay: string; ma_ck?: number; ma_bs?: number; kenh?: string }) =>
+    goi<KetQuaThongKe>(`/thong-ke/${loai}${query(loc)}`),
 
   // Lịch làm việc
   dsCa: (loc: { tu_ngay: string; den_ngay: string; ma_bs?: number; ma_ck?: number }) =>

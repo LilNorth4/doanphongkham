@@ -26,7 +26,12 @@ export const giaoDien: ThemeConfig = {
     colorInfo: MAU.chinh,
     colorLink: MAU.chinh,
     colorLinkHover: MAU.chinhDam,
+    // Nền nhạt đặt tay: antd tự sinh từ màu chính đậm ra nền xám đục, hộp thông tin trông như bị vô hiệu
+    colorInfoBg: MAU.chinhNhat,
+    colorInfoBorder: '#B5D9D2',
     colorSuccess: '#1E7A4C',
+    colorSuccessBg: '#E7F4EC',
+    colorSuccessBorder: '#B4DCC3',
     colorWarning: '#C2410C',
     colorError: MAU.loi,
     colorText: MAU.chu,

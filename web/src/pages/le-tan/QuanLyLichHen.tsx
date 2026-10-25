@@ -1,4 +1,4 @@
-import { CheckOutlined, LeftOutlined, PlusOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons'
+import { CheckOutlined, DollarOutlined, LeftOutlined, PlusOutlined, ReloadOutlined, RightOutlined, WalletOutlined } from '@ant-design/icons'
 import {
   Alert, App, Badge, Button, Card, Col, DatePicker, Descriptions, Flex, Form, Input, Modal, Radio, Result, Row,
   Segmented, Select, Space, Tabs, Tag, Tooltip, Typography, type TableProps,
@@ -31,7 +31,9 @@ type KetQuaCheckIn = {
  */
 export default function QuanLyLichHen() {
   const { message, modal } = App.useApp()
-  const chiXem = !usePhien().nguoiDung?.Quyen.includes('LICH_HEN.DUYET')
+  const quyen = usePhien().nguoiDung?.Quyen ?? []
+  const chiXem = !quyen.includes('LICH_HEN.DUYET')
+  const thuTien = quyen.includes('THANH_TOAN.THU')
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const [tab, setTab] = useState(params.get('tab') === 'ngay' ? 'ngay' : 'cho')
@@ -163,6 +165,13 @@ export default function QuanLyLichHen() {
         </Space>
       )
     }
+    // Bệnh nhân quay lại quầy: thu ngay từ danh sách lịch hẹn, không phải tìm lại ở trang thu tiền
+    if (thuTien && (lh.SoPhieuChoThu ?? 0) > 0) {
+      return <Button size="small" type="primary" icon={<WalletOutlined />} onClick={() => navigate(`/le-tan/tam-thu?lk=${lh.MaLK}`)}>Thu tạm thu CLS</Button>
+    }
+    if (thuTien && lh.MaHDChuaThu) {
+      return <Button size="small" type="primary" icon={<DollarOutlined />} onClick={() => navigate(`/le-tan/thanh-toan?hd=${lh.MaHDChuaThu}`)}>Thanh toán</Button>
+    }
     return null
   }
 
@@ -279,7 +288,7 @@ export default function QuanLyLichHen() {
               <Flex gap={12} wrap align="center" style={{ marginBottom: 12 }}>
                 <Space.Compact>
                   <Button icon={<LeftOutlined />} onClick={() => setNgay(ngay.subtract(1, 'day'))} aria-label="Ngày trước" />
-                  <DatePicker value={ngay} onChange={(d) => d && setNgay(d)} format="dddd, DD/MM/YYYY" allowClear={false}
+                  <DatePicker value={ngay} onChange={(d) => d && setNgay(d)} format={(d) => thuNgay(d)} allowClear={false}
                     style={{ width: 210 }} />
                   <Button icon={<RightOutlined />} onClick={() => setNgay(ngay.add(1, 'day'))} aria-label="Ngày sau" />
                 </Space.Compact>
