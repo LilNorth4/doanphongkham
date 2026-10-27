@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.ChuanHoa;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
@@ -37,7 +36,6 @@ import vn.vietbac.phongkham.thucthe.VaiTro;
  * quyền gọi (TAI_KHOAN.QUAN_LY, VAI_TRO.QUAN_LY, NHAT_KY.XEM) do controller kiểm tra bằng @CanQuyen.
  */
 @Service
-@RequiredArgsConstructor
 public class QuanLyTaiKhoanService {
 
     /** BR11: bác sĩ cận lâm sàng phụ trách đúng loại phòng. */
@@ -58,6 +56,18 @@ public class QuanLyTaiKhoanService {
     private final NhatKyService nhatKy;
     private final TruyVan tv;
     private final DongHo dongHo;
+
+    public QuanLyTaiKhoanService(TaiKhoanRepository taiKhoanRepo, NhanVienRepository nhanVienRepo, VaiTroRepository vaiTroRepo, QuyenRepository quyenRepo, XacThucService xacThuc, ThongBaoService thongBao, NhatKyService nhatKy, TruyVan tv, DongHo dongHo) {
+        this.taiKhoanRepo = taiKhoanRepo;
+        this.nhanVienRepo = nhanVienRepo;
+        this.vaiTroRepo = vaiTroRepo;
+        this.quyenRepo = quyenRepo;
+        this.xacThuc = xacThuc;
+        this.thongBao = thongBao;
+        this.nhatKy = nhatKy;
+        this.tv = tv;
+        this.dongHo = dongHo;
+    }
 
     public record NhanVienMoi(String hoTen, String email, String sdt, String loaiNhanVien, LocalDate ngaySinh,
                               String gioiTinh, Integer maCK, String hocHamHocVi, Integer soNamKinhNghiem,

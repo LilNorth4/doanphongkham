@@ -12,7 +12,6 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
 import vn.vietbac.phongkham.chung.TruyVan;
@@ -23,7 +22,6 @@ import vn.vietbac.phongkham.chung.TruyVan;
  * Doanh thu thuần = tạm thu CLS + thu hóa đơn cuối lượt − tiền đã hoàn, tính theo ngày thu / ngày hoàn.
  */
 @Service
-@RequiredArgsConstructor
 public class ThongKeService {
 
     /** Lượt khám bệnh nhân đã đến (đã check-in trở đi, trừ hủy / vắng). */
@@ -32,6 +30,11 @@ public class ThongKeService {
 
     private final TruyVan tv;
     private final DongHo dongHo;
+
+    public ThongKeService(TruyVan tv, DongHo dongHo) {
+        this.tv = tv;
+        this.dongHo = dongHo;
+    }
 
     public record BoLoc(Integer maCK, Integer maBS, String kenh) {
     }

@@ -17,11 +17,12 @@
   ],
   "sqltools.autoConnectTo": ["phongkham (MySQL 8.0 local)"],
   "sqltools.useNodeRuntime": true,
-  "java.compile.nullAnalysis.mode": "automatic",
+  // Spring Boot 4 dùng chú thích null JSpecify, JDT báo cảnh báo giả ở method reference (VD NhanVien::getHoTen)
+  "java.compile.nullAnalysis.mode": "disabled",
   // Không để VS Code tự biên dịch vào backend/target/classes (thiếu Lombok, ghi đè class của Maven)
   "java.autobuild.enabled": false,
-  // Lombok 1.18.39 đi kèm extension Java không khớp trình biên dịch JDT mới, báo lỗi giả
-  // "Flexible Constructor Bodies" ở @RequiredArgsConstructor. Dùng Lombok của dự án (pom.xml) thay thế.
+  // Dùng Lombok của dự án (pom.xml) thay cho bản đi kèm extension Java. Không dùng @RequiredArgsConstructor:
+  // JDT mới báo lỗi giả "Flexible Constructor Bodies" ở constructor do Lombok sinh, kể cả với Lombok 1.18.46.
   "java.jdt.ls.lombokSupport.enabled": false,
   "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx2G -Xms100m -Xlog:disable -javaagent:C:\\Users\\NITRO5~1\\.m2\\repository\\org\\projectlombok\\lombok\\1.18.46\\lombok-1.18.46.jar"
 }

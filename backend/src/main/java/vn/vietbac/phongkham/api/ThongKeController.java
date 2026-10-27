@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.dichvu.ThongKeService;
 import vn.vietbac.phongkham.dichvu.ThongKeService.BoLoc;
 import vn.vietbac.phongkham.xacthuc.CanQuyen;
@@ -18,10 +17,13 @@ import vn.vietbac.phongkham.xacthuc.CanQuyen;
 /** Gói 13: dashboard tổng quan (UC13.1) và thống kê theo tiêu chí (UC13.2) cho quản trị viên. */
 @RestController
 @RequestMapping("/api/thong-ke")
-@RequiredArgsConstructor
 public class ThongKeController {
 
     private final ThongKeService thongKe;
+
+    public ThongKeController(ThongKeService thongKe) {
+        this.thongKe = thongKe;
+    }
 
     @GetMapping("/tong-quan")
     @CanQuyen("THONG_KE.XEM")

@@ -17,7 +17,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.dichvu.CanLamSangService;
 import vn.vietbac.phongkham.dichvu.CanLamSangService.ChiSoNhap;
 import vn.vietbac.phongkham.dichvu.CanLamSangService.KetQuaNhap;
@@ -27,10 +26,13 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 /** Gói 14: bác sĩ xét nghiệm, chẩn đoán hình ảnh, nội soi tiếp nhận và trả kết quả (UC14.1-14.9). */
 @RestController
 @RequestMapping("/api/cls")
-@RequiredArgsConstructor
 public class CanLamSangController {
 
     private final CanLamSangService cls;
+
+    public CanLamSangController(CanLamSangService cls) {
+        this.cls = cls;
+    }
 
     public record ChiSo(@JsonProperty("ma_chi_so") Integer maChiSo, @JsonProperty("gia_tri") BigDecimal giaTri) {
     }

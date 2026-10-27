@@ -3,7 +3,6 @@ package vn.vietbac.phongkham.dichvu;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -12,13 +11,19 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class TacVuDinhKy {
 
     private final DatLichService datLich;
     private final TiepDonService tiepDon;
     private final DanhGiaService danhGia;
     private final GopYService gopY;
+
+    public TacVuDinhKy(DatLichService datLich, TiepDonService tiepDon, DanhGiaService danhGia, GopYService gopY) {
+        this.datLich = datLich;
+        this.tiepDon = tiepDon;
+        this.danhGia = danhGia;
+        this.gopY = gopY;
+    }
 
     @Scheduled(initialDelay = 60_000, fixedDelay = 60_000)
     public void chay() {

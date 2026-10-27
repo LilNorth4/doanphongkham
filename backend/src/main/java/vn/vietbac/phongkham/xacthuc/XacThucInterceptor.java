@@ -8,7 +8,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.dichvu.XacThucService;
 
@@ -17,12 +16,15 @@ import vn.vietbac.phongkham.dichvu.XacThucService;
  * Phiên không hợp lệ -> 401; thiếu quyền hoặc còn mật khẩu tạm -> 403.
  */
 @Component
-@RequiredArgsConstructor
 public class XacThucInterceptor implements HandlerInterceptor {
 
     static final String THUOC_TINH = "phongkham.nguoiDung";
 
     private final XacThucService xacThuc;
+
+    public XacThucInterceptor(XacThucService xacThuc) {
+        this.xacThuc = xacThuc;
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest req, HttpServletResponse res, Object handler) {

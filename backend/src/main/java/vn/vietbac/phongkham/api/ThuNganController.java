@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.dichvu.ThuNganService;
 import vn.vietbac.phongkham.xacthuc.CanQuyen;
@@ -25,10 +24,13 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 /** Gói 10: lễ tân tạm thu chi phí cận lâm sàng (UC10.7). */
 @RestController
 @RequestMapping("/api/thu-ngan")
-@RequiredArgsConstructor
 public class ThuNganController {
 
     private final ThuNganService thuNgan;
+
+    public ThuNganController(ThuNganService thuNgan) {
+        this.thuNgan = thuNgan;
+    }
 
     public record TamThu(@JsonProperty("ma_lk") Integer maLK, @JsonProperty("ma_pcd") List<Integer> maPCD,
                          @JsonProperty("hinh_thuc") String hinhThuc,

@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import lombok.RequiredArgsConstructor;
 import tools.jackson.databind.ObjectMapper;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
@@ -31,7 +30,6 @@ import vn.vietbac.phongkham.chung.TruyVan;
  * (UC14.7). Lượt khám có đủ kết quả thì quay lại đầu hàng chờ của bác sĩ điều trị.
  */
 @Service
-@RequiredArgsConstructor
 public class CanLamSangService {
 
     public static final List<String> PHIEU_CHUA_XONG = List.of("CHO_THANH_TOAN", "CHO_THUC_HIEN", "DANG_THUC_HIEN");
@@ -45,6 +43,16 @@ public class CanLamSangService {
     private final TruyVan tv;
     private final DongHo dongHo;
     private final ObjectMapper json;
+
+    public CanLamSangService(ThongBaoService thongBao, NhatKyService nhatKy, TiepDonService tiepDon, LuuAnh luuAnh, TruyVan tv, DongHo dongHo, ObjectMapper json) {
+        this.thongBao = thongBao;
+        this.nhatKy = nhatKy;
+        this.tiepDon = tiepDon;
+        this.luuAnh = luuAnh;
+        this.tv = tv;
+        this.dongHo = dongHo;
+        this.json = json;
+    }
 
     public record ChiSoNhap(Integer maChiSo, BigDecimal giaTri) {
     }

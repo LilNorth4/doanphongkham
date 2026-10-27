@@ -14,7 +14,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.dichvu.GopYService;
 import vn.vietbac.phongkham.xacthuc.CanQuyen;
@@ -23,13 +22,16 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 /** Gói 12: bệnh nhân gửi, theo dõi góp ý – khiếu nại (UC12.2); quản trị viên xử lý, phản hồi (UC12.3, BR25). */
 @RestController
 @RequestMapping("/api/gop-y")
-@RequiredArgsConstructor
 public class GopYController {
 
     private static final String GUI = "DANH_GIA.GUI";
     private static final String XU_LY = "GOP_Y.XU_LY";
 
     private final GopYService gopY;
+
+    public GopYController(GopYService gopY) {
+        this.gopY = gopY;
+    }
 
     public record NoiDung(@JsonProperty("noi_dung") String noiDung) {
     }

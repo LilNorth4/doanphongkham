@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.dichvu.KhamBenhService;
 import vn.vietbac.phongkham.dichvu.KhamBenhService.CapNhatHoSo;
@@ -27,10 +26,13 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 /** Gói 8: bác sĩ khám bệnh (UC8.1-8.15); gói 9: bệnh nhân xem hồ sơ sức khỏe của mình. */
 @RestController
 @RequestMapping("/api")
-@RequiredArgsConstructor
 public class KhamBenhController {
 
     private final KhamBenhService kham;
+
+    public KhamBenhController(KhamBenhService kham) {
+        this.kham = kham;
+    }
 
     public record Thuoc(@JsonProperty("ma_thuoc") Integer maThuoc, @JsonProperty("so_luong") Integer soLuong,
                         @JsonProperty("lieu_dung") String lieuDung, @JsonProperty("cach_dung") String cachDung,

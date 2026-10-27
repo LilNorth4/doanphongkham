@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.KhongTimThay;
 import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.chung.TruyVan;
@@ -27,11 +26,15 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 /** Gói 5, 6: tra cứu lịch trống (UC5.6), bệnh nhân đặt/hủy/đổi lịch (UC6.1-6.5) và danh sách chờ (UC6.8-6.10). */
 @RestController
 @RequestMapping("/api")
-@RequiredArgsConstructor
 public class DatLichController {
 
     private final DatLichService datLich;
     private final TruyVan tv;
+
+    public DatLichController(DatLichService datLich, TruyVan tv) {
+        this.datLich = datLich;
+        this.tv = tv;
+    }
 
     public record DatLich(@JsonProperty("ma_kg") Integer maKG, @JsonProperty("ly_do") String lyDo,
                           @JsonProperty("trieu_chung") String trieuChung) {

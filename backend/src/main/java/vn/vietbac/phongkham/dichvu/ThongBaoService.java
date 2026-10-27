@@ -9,7 +9,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
 import vn.vietbac.phongkham.chung.TruyVan;
@@ -23,13 +22,19 @@ import vn.vietbac.phongkham.thucthe.ThongBao;
  * việc gửi thật (Firebase, SMTP, nền tảng nhắn tin) do worker bên ngoài đảm nhận.
  */
 @Service
-@RequiredArgsConstructor
 public class ThongBaoService {
 
     private final ThongBaoRepository thongBaoRepo;
     private final GuiThongBaoRepository guiRepo;
     private final TruyVan tv;
     private final DongHo dongHo;
+
+    public ThongBaoService(ThongBaoRepository thongBaoRepo, GuiThongBaoRepository guiRepo, TruyVan tv, DongHo dongHo) {
+        this.thongBaoRepo = thongBaoRepo;
+        this.guiRepo = guiRepo;
+        this.tv = tv;
+        this.dongHo = dongHo;
+    }
 
     /** Gửi tới tài khoản: hiện trong ứng dụng (PUSH) và qua email. */
     public Long taiKhoan(Integer maTK, String loai, String tieuDe, String noiDung, String doiTuong, Integer maDoiTuong) {

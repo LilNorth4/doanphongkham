@@ -11,7 +11,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
@@ -23,7 +22,6 @@ import vn.vietbac.phongkham.chung.TruyVan;
  * hoặc chuyển khoản. Phiếu tự sinh khi bác sĩ hủy phiếu CLS đã tạm thu hoặc khi hóa đơn thay thế nhỏ hơn.
  */
 @Service
-@RequiredArgsConstructor
 public class HoanTienService {
 
     public static final BigDecimal NGUONG_DUYET = BigDecimal.valueOf(1_000_000);
@@ -35,6 +33,13 @@ public class HoanTienService {
     private final NhatKyService nhatKy;
     private final TruyVan tv;
     private final DongHo dongHo;
+
+    public HoanTienService(ThongBaoService thongBao, NhatKyService nhatKy, TruyVan tv, DongHo dongHo) {
+        this.thongBao = thongBao;
+        this.nhatKy = nhatKy;
+        this.tv = tv;
+        this.dongHo = dongHo;
+    }
 
     // ================= Lập đề nghị =================
 

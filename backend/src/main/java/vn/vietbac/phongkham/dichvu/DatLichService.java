@@ -12,7 +12,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
@@ -29,7 +28,6 @@ import vn.vietbac.phongkham.thucthe.LuotKham;
  * (UC6.8-6.10, UC13.9, BR21).
  */
 @Service
-@RequiredArgsConstructor
 public class DatLichService {
 
     public static final List<String> TRANG_THAI_CON_HIEU_LUC = List.of("CHO_XAC_NHAN", "DA_XAC_NHAN", "DA_CHECK_IN",
@@ -46,6 +44,16 @@ public class DatLichService {
     private final NhatKyService nhatKy;
     private final TruyVan tv;
     private final DongHo dongHo;
+
+    public DatLichService(KhungGioRepository khungGioRepo, LuotKhamRepository luotKhamRepo, DangKyChoRepository dangKyChoRepo, ThongBaoService thongBao, NhatKyService nhatKy, TruyVan tv, DongHo dongHo) {
+        this.khungGioRepo = khungGioRepo;
+        this.luotKhamRepo = luotKhamRepo;
+        this.dangKyChoRepo = dangKyChoRepo;
+        this.thongBao = thongBao;
+        this.nhatKy = nhatKy;
+        this.tv = tv;
+        this.dongHo = dongHo;
+    }
 
     // ================= Tra cứu (UC5.6) =================
 

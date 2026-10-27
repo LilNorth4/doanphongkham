@@ -14,7 +14,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
@@ -30,7 +29,6 @@ import vn.vietbac.phongkham.chung.TruyVan;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class HoaDonService {
 
     private static final List<String> HINH_THUC_QUAY = List.of("TIEN_MAT", "CHUYEN_KHOAN");
@@ -42,6 +40,15 @@ public class HoaDonService {
     private final HoanTienService hoanTien;
     private final TruyVan tv;
     private final DongHo dongHo;
+
+    public HoaDonService(ThongBaoService thongBao, NhatKyService nhatKy, MoMo moMo, HoanTienService hoanTien, TruyVan tv, DongHo dongHo) {
+        this.thongBao = thongBao;
+        this.nhatKy = nhatKy;
+        this.moMo = moMo;
+        this.hoanTien = hoanTien;
+        this.tv = tv;
+        this.dongHo = dongHo;
+    }
 
     @Value("${phongkham.dia-chi-web}")
     private String diaChiWeb;

@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.dichvu.HoanTienService;
 import vn.vietbac.phongkham.xacthuc.CanQuyen;
@@ -23,13 +22,16 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 /** Gói 10: phiếu hoàn tiền (UC10.4, BR31): lễ tân lập và chi, quản trị viên duyệt phiếu vượt ngưỡng. */
 @RestController
 @RequestMapping("/api/hoan-tien")
-@RequiredArgsConstructor
 public class HoanTienController {
 
     private static final String LAP = "HOAN_TIEN.LAP";
     private static final String DUYET = "HOAN_TIEN.DUYET";
 
     private final HoanTienService hoanTien;
+
+    public HoanTienController(HoanTienService hoanTien) {
+        this.hoanTien = hoanTien;
+    }
 
     public record DeNghi(@JsonProperty("ma_bl") Integer maBL, @JsonProperty("ma_hd") Integer maHD,
                          @JsonProperty("ly_do") String lyDo, @JsonProperty("ghi_chu") String ghiChu,

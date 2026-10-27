@@ -14,7 +14,6 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
@@ -28,7 +27,6 @@ import vn.vietbac.phongkham.thucthe.KhungGio;
  * (UC4.4), khóa/mở khung giờ, đổi phòng và hủy ca.
  */
 @Service
-@RequiredArgsConstructor
 public class LichLamViecService {
 
     /** Giờ làm của phòng khám: sáng 7h-11h30, chiều 13h30-17h, thứ 2 đến thứ 7. */
@@ -49,6 +47,15 @@ public class LichLamViecService {
     private final NhatKyService nhatKy;
     private final TruyVan tv;
     private final DongHo dongHo;
+
+    public LichLamViecService(KhungGioRepository khungGioRepo, DatLichService datLich, ThongBaoService thongBao, NhatKyService nhatKy, TruyVan tv, DongHo dongHo) {
+        this.khungGioRepo = khungGioRepo;
+        this.datLich = datLich;
+        this.thongBao = thongBao;
+        this.nhatKy = nhatKy;
+        this.tv = tv;
+        this.dongHo = dongHo;
+    }
 
     // ================= Xem lịch =================
 

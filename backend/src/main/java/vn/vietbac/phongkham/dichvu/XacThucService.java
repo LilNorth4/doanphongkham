@@ -11,7 +11,6 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.ChuanHoa;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
@@ -35,7 +34,6 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
  * cấp tài khoản (QuanLyTaiKhoanService). Mọi tác nhân đăng nhập chung một luồng bằng email hoặc SĐT.
  */
 @Service
-@RequiredArgsConstructor
 public class XacThucService {
 
     public static final int SO_LAN_SAI_TOI_DA = 5;
@@ -61,6 +59,18 @@ public class XacThucService {
     private final NhatKyService nhatKy;
     private final TruyVan tv;
     private final DongHo dongHo;
+
+    public XacThucService(TaiKhoanRepository taiKhoanRepo, VaiTroRepository vaiTroRepo, MaOtpRepository otpRepo, PhienDangNhapRepository phienRepo, BenhNhanRepository benhNhanRepo, ThongBaoService thongBao, NhatKyService nhatKy, TruyVan tv, DongHo dongHo) {
+        this.taiKhoanRepo = taiKhoanRepo;
+        this.vaiTroRepo = vaiTroRepo;
+        this.otpRepo = otpRepo;
+        this.phienRepo = phienRepo;
+        this.benhNhanRepo = benhNhanRepo;
+        this.thongBao = thongBao;
+        this.nhatKy = nhatKy;
+        this.tv = tv;
+        this.dongHo = dongHo;
+    }
 
     // ================= Hàm dùng chung =================
 

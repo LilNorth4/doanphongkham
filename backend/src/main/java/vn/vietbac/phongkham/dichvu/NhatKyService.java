@@ -2,18 +2,21 @@ package vn.vietbac.phongkham.dichvu;
 
 import org.springframework.stereotype.Service;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.kho.NhatKyThaoTacRepository;
 import vn.vietbac.phongkham.thucthe.NhatKyThaoTac;
 
 /** Ghi nhật ký thao tác (UC2.6, UC2.8). Gọi bên trong giao dịch của nghiệp vụ để cùng commit/rollback. */
 @Service
-@RequiredArgsConstructor
 public class NhatKyService {
 
     private final NhatKyThaoTacRepository repo;
     private final DongHo dongHo;
+
+    public NhatKyService(NhatKyThaoTacRepository repo, DongHo dongHo) {
+        this.repo = repo;
+        this.dongHo = dongHo;
+    }
 
     /** maTKThucHien null = hệ thống tự động (VD khóa tạm do sai mật khẩu). */
     public void ghi(Integer maTKThucHien, String hanhDong, String doiTuong, Object maDoiTuong, String chiTiet) {

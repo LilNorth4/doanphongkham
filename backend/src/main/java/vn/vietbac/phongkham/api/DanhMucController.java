@@ -18,7 +18,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.dichvu.DanhMucService;
 import vn.vietbac.phongkham.dichvu.MatBangService;
 import vn.vietbac.phongkham.xacthuc.CanQuyen;
@@ -27,7 +26,6 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 /** Gói 3: quản trị viên quản lý danh mục (UC3.1-3.8) và sơ đồ mặt bằng (UC3.9). */
 @RestController
 @RequestMapping("/api/quan-ly")
-@RequiredArgsConstructor
 public class DanhMucController {
 
     private static final String DANH_MUC = "DANH_MUC.QUAN_LY";
@@ -35,6 +33,11 @@ public class DanhMucController {
 
     private final DanhMucService danhMuc;
     private final MatBangService matBang;
+
+    public DanhMucController(DanhMucService danhMuc, MatBangService matBang) {
+        this.danhMuc = danhMuc;
+        this.matBang = matBang;
+    }
 
     public record TrangThai(@JsonProperty("hoat_dong") boolean hoatDong) {
     }

@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
@@ -28,7 +27,6 @@ import vn.vietbac.phongkham.chung.TruyVan;
  * Danh mục đã dùng trong hồ sơ không xóa mà chuyển "Ngừng hoạt động" để giữ lịch sử.
  */
 @Service
-@RequiredArgsConstructor
 public class DanhMucService {
 
     private static final String HOAT_DONG = "HOAT_DONG";
@@ -45,6 +43,13 @@ public class DanhMucService {
     private final LuuAnh luuAnh;
     private final TruyVan tv;
     private final DongHo dongHo;
+
+    public DanhMucService(NhatKyService nhatKy, LuuAnh luuAnh, TruyVan tv, DongHo dongHo) {
+        this.nhatKy = nhatKy;
+        this.luuAnh = luuAnh;
+        this.tv = tv;
+        this.dongHo = dongHo;
+    }
 
     public record ChuyenKhoa(String tenCK, String moTa, BigDecimal phiKhamCoBan) {
     }

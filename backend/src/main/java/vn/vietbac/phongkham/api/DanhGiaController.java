@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
 import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.dichvu.DanhGiaService;
@@ -25,13 +24,16 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 /** Gói 12: đánh giá sau khám (UC12.1) và báo cáo phân tích đánh giá cho quản trị viên (UC13.3). */
 @RestController
 @RequestMapping("/api/danh-gia")
-@RequiredArgsConstructor
 public class DanhGiaController {
 
     private static final String GUI = "DANH_GIA.GUI";
     private static final String XEM = "THONG_KE.XEM";
 
     private final DanhGiaService danhGia;
+
+    public DanhGiaController(DanhGiaService danhGia) {
+        this.danhGia = danhGia;
+    }
 
     @GetMapping("/cua-toi")
     @CanQuyen(GUI)

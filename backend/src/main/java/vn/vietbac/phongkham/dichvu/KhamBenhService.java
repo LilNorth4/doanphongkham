@@ -15,7 +15,6 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
 import tools.jackson.databind.ObjectMapper;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
@@ -29,7 +28,6 @@ import vn.vietbac.phongkham.chung.TruyVan;
  * gói 9 – bệnh nhân xem hồ sơ sức khỏe của mình. Mọi lần đọc / ghi hồ sơ được ghi vào NhatKyTruyCapHoSo (UC2.8).
  */
 @Service
-@RequiredArgsConstructor
 public class KhamBenhService {
 
     /** Lượt khám bác sĩ còn thao tác được trong ngày. */
@@ -45,6 +43,18 @@ public class KhamBenhService {
     private final TruyVan tv;
     private final DongHo dongHo;
     private final ObjectMapper json;
+
+    public KhamBenhService(ThongBaoService thongBao, NhatKyService nhatKy, TiepDonService tiepDon, CanLamSangService canLamSang, HoaDonService hoaDon, HoanTienService hoanTien, TruyVan tv, DongHo dongHo, ObjectMapper json) {
+        this.thongBao = thongBao;
+        this.nhatKy = nhatKy;
+        this.tiepDon = tiepDon;
+        this.canLamSang = canLamSang;
+        this.hoaDon = hoaDon;
+        this.hoanTien = hoanTien;
+        this.tv = tv;
+        this.dongHo = dongHo;
+        this.json = json;
+    }
 
     public record ThuocKe(Integer maThuoc, Integer soLuong, String lieuDung, String cachDung, Integer soNgayDung) {
     }

@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
 import vn.vietbac.phongkham.dichvu.DatLichService;
@@ -24,12 +23,17 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 /** Lịch khám của bác sĩ và thông báo trong ứng dụng (UC1.8). */
 @RestController
 @RequestMapping("/api")
-@RequiredArgsConstructor
 public class BacSiThongBaoController {
 
     private final DatLichService datLich;
     private final ThongBaoService thongBao;
     private final DongHo dongHo;
+
+    public BacSiThongBaoController(DatLichService datLich, ThongBaoService thongBao, DongHo dongHo) {
+        this.datLich = datLich;
+        this.thongBao = thongBao;
+        this.dongHo = dongHo;
+    }
 
     /**
      * Lịch hẹn trong ngày (mặc định hôm nay), bỏ lịch đã hủy: của chính bác sĩ, hoặc của bác sĩ ma_bs

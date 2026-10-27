@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.dichvu.HoaDonService;
@@ -29,10 +28,13 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 @Slf4j
 @RestController
 @RequestMapping("/api/thanh-toan")
-@RequiredArgsConstructor
 public class ThanhToanController {
 
     private final HoaDonService hoaDon;
+
+    public ThanhToanController(HoaDonService hoaDon) {
+        this.hoaDon = hoaDon;
+    }
 
     public record ThuTien(@JsonProperty("hinh_thuc") String hinhThuc,
                           @JsonProperty("tien_khach_dua") BigDecimal tienKhachDua) {

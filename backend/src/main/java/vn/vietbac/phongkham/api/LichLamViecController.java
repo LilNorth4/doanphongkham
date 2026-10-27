@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.dichvu.LichLamViecService;
 import vn.vietbac.phongkham.dichvu.LichLamViecService.YeuCauTaoCa;
@@ -26,12 +25,15 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 /** Gói 4: lịch làm việc, đăng ký ca (UC4.1-4.4) và khóa khung giờ. */
 @RestController
 @RequestMapping("/api/lich-lam-viec")
-@RequiredArgsConstructor
 public class LichLamViecController {
 
     private static final String QUAN_LY = "LICH_LV.QUAN_LY";
 
     private final LichLamViecService lichLV;
+
+    public LichLamViecController(LichLamViecService lichLV) {
+        this.lichLV = lichLV;
+    }
 
     public record TaoCa(@JsonProperty("ma_bs") Integer maBS, @JsonProperty("ma_phong") Integer maPhong,
                         @JsonProperty("ca_lam") List<String> caLam, @JsonProperty("tu_ngay") LocalDate tuNgay,

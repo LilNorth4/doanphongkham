@@ -79,7 +79,12 @@ export function CanDangNhap({ children, quyen }: { children: ReactNode; quyen?: 
   const { nguoiDung, dangTai } = usePhien()
   const location = useLocation()
   if (dangTai) return <DangTai />
-  if (!nguoiDung) return <Navigate to="/dang-nhap" replace state={{ tu: location.pathname }} />
+  if (!nguoiDung) {
+    // Khách mở trang gốc thì xem trang giới thiệu; các trang khác vẫn đưa sang đăng nhập rồi quay lại
+    return location.pathname === '/'
+      ? <Navigate to="/gioi-thieu" replace />
+      : <Navigate to="/dang-nhap" replace state={{ tu: location.pathname }} />
+  }
   if (nguoiDung.PhaiDoiMatKhau && location.pathname !== '/doi-mat-khau') {
     return <Navigate to="/doi-mat-khau" replace />
   }

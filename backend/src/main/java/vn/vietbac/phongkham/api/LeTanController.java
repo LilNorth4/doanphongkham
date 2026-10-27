@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
 import vn.vietbac.phongkham.chung.TruyVan;
 import vn.vietbac.phongkham.dichvu.DatLichService;
@@ -27,7 +26,6 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 /** Gói 7: lễ tân quản lý lịch hẹn (UC7.1-7.4), đặt lịch hộ (UC7.7, 7.13, 7.14), tiếp đón (UC7.5, 7.8-7.10). */
 @RestController
 @RequestMapping("/api/le-tan")
-@RequiredArgsConstructor
 public class LeTanController {
 
     private static final List<String> KENH_LE_TAN = List.of("DIEN_THOAI", "TIN_NHAN", "TAI_QUAY");
@@ -35,6 +33,12 @@ public class LeTanController {
     private final DatLichService datLich;
     private final TiepDonService tiepDon;
     private final TruyVan tv;
+
+    public LeTanController(DatLichService datLich, TiepDonService tiepDon, TruyVan tv) {
+        this.datLich = datLich;
+        this.tiepDon = tiepDon;
+        this.tv = tv;
+    }
 
     public record DatLichHo(@JsonProperty("ma_bn") Integer maBN, @JsonProperty("ma_kg") Integer maKG, String kenh,
                             @JsonProperty("ly_do") String lyDo, @JsonProperty("trieu_chung") String trieuChung) {

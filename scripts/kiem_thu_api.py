@@ -623,7 +623,7 @@ def t_bao_cao():
 tc('DG01', N, 'Lượt chưa thanh toán chưa đánh giá được (BR24)', t_chua_tra)
 tc('DG02', N, 'Thanh toán xong → lượt vào danh sách chờ đánh giá', t_thu_hoa_don)
 tc('DG03', N, 'Thiếu điểm bác sĩ bị chặn', lambda: loi(*goi(T['bn2'], f'/danh-gia/luot/{LK()}', 'POST', tep=dict(DIEM)), 400, 'bác sĩ'))
-tc('DG04', N, 'Không chấm tiêu chí dịch vụ nào bị chặn', lambda: loi(*goi(T['bn2'], f'/danh-gia/luot/{LK()}', 'POST', tep={'diem_bac_si': '4'}), 400, 'tiêu chí'))
+# DG04 (bắt chấm ít nhất một tiêu chí dịch vụ) đã bỏ: tiêu chí dịch vụ giờ không bắt buộc
 tc('DG05', N, 'Điểm ngoài 1–5 bị chặn', lambda: loi(*goi(T['bn2'], f'/danh-gia/luot/{LK()}', 'POST', tep={'diem_bac_si': '6', **DIEM}), 400, '1 đến 5'))
 tc('DG06', N, 'Gửi đánh giá kèm ảnh, bỏ qua tiêu chí CLS', t_gui_danh_gia)
 tc('DG07', N, 'Đánh giá lần hai bị chặn', lambda: loi(*goi(T['bn2'], f'/danh-gia/luot/{LK()}', 'POST', tep={'diem_bac_si': '3', **DIEM}), 400, 'đã được đánh giá'))

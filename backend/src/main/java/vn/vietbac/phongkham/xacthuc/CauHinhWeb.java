@@ -20,7 +20,6 @@ import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.PathResourceResolver;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.LuuAnh;
 
 /**
@@ -28,11 +27,15 @@ import vn.vietbac.phongkham.chung.LuuAnh;
  * phục vụ ảnh người dùng tải lên tại /api/tep/** và giao diện web đã build.
  */
 @Configuration
-@RequiredArgsConstructor
 public class CauHinhWeb implements WebMvcConfigurer {
 
     private final XacThucInterceptor xacThucInterceptor;
     private final LuuAnh luuAnh;
+
+    public CauHinhWeb(XacThucInterceptor xacThucInterceptor, LuuAnh luuAnh) {
+        this.xacThucInterceptor = xacThucInterceptor;
+        this.luuAnh = luuAnh;
+    }
 
     @Value("${phongkham.thu-muc-web}")
     private String thuMucWeb;

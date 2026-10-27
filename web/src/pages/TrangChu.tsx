@@ -1,13 +1,14 @@
 import {
-  AppstoreOutlined, ArrowRightOutlined, CalendarOutlined, ClusterOutlined, CheckCircleTwoTone, ClockCircleOutlined, FileProtectOutlined, FileSearchOutlined, FormOutlined, GlobalOutlined,
+  AppstoreOutlined, ArrowRightOutlined, CalendarOutlined, ClusterOutlined, CheckCircleTwoTone, ClockCircleOutlined, FileProtectOutlined, FileSearchOutlined, FormOutlined, GlobalOutlined, MedicineBoxOutlined,
   PhoneOutlined, SafetyCertificateOutlined, ScheduleOutlined, SolutionOutlined, TeamOutlined,
 } from '@ant-design/icons'
+import dayjs from 'dayjs'
 import { Button, Card, Col, Empty, Flex, Row, Typography, theme } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import BannerAnh from '@/components/BannerAnh'
 import { ANH } from '@/lib/anh'
 import { usePhien } from '@/lib/auth'
-import { TEN_PHONG_KHAM } from '@/lib/hangSo'
+import { TEN_PHONG_KHAM, thuNgay } from '@/lib/hangSo'
 
 // Tên quyền theo bảng Quyen trong backend/src/main/resources/db/migration/V1__tao_bang.sql
 const TEN_QUYEN: Record<string, string> = {
@@ -78,19 +79,24 @@ export default function TrangChu() {
       <Col span={24}>
         <BannerAnh anh={ANH.banner}>
           <div className="banner-chu">
-            <span className="banner-nhan">{TEN_PHONG_KHAM}</span>
+            <span className="nhan-kinh"><MedicineBoxOutlined /> {TEN_PHONG_KHAM} · {thuNgay(dayjs())}</span>
             <h2>{loiChao()}, {nguoiDung.HoTen}</h2>
             <p>
               {laBenhNhan
                 ? 'Chúc bạn luôn khỏe mạnh. Đặt lịch trực tuyến, chọn bác sĩ và giờ khám phù hợp chỉ trong vài bước.'
                 : 'Chúc bạn một ngày làm việc hiệu quả.'}
             </p>
-            {loiTat[0] && (
-              <Button type="primary" size="large" icon={<ArrowRightOutlined />} iconPlacement="end"
-                onClick={() => navigate(loiTat[0].duong)}>
-                {laBenhNhan ? 'Đặt lịch ngay' : loiTat[0].ten}
-              </Button>
-            )}
+            <Flex wrap gap={12}>
+              {loiTat[0] && (
+                <Button size="large" className="nut-trang" icon={<ArrowRightOutlined />} iconPlacement="end"
+                  onClick={() => navigate(loiTat[0].duong)}>
+                  {laBenhNhan ? 'Đặt lịch ngay' : loiTat[0].ten}
+                </Button>
+              )}
+              {laBenhNhan && (
+                <Button size="large" className="nut-vien-trang" icon={<PhoneOutlined />} href="tel:19001234">1900 1234</Button>
+              )}
+            </Flex>
           </div>
         </BannerAnh>
       </Col>

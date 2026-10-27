@@ -6,6 +6,7 @@ import { CanDangNhap, ChiKhach } from '@/lib/auth'
 
 // Mỗi trang là một gói riêng, chỉ tải khi mở tới
 const TrangChu = lazy(() => import('@/pages/TrangChu'))
+const GioiThieu = lazy(() => import('@/pages/GioiThieu'))
 // Xác thực
 const DangKy = lazy(() => import('@/pages/xac-thuc/DangKy'))
 const DangNhap = lazy(() => import('@/pages/xac-thuc/DangNhap'))
@@ -53,6 +54,8 @@ type RouteItem = {
 }
 
 const publicRoutes: RouteItem[] = [
+  // Ai cũng xem được, kể cả đã đăng nhập
+  { path: '/gioi-thieu', element: <GioiThieu /> },
   { path: '/dang-nhap', element: <ChiKhach><DangNhap /></ChiKhach> },
   { path: '/dang-ky', element: <ChiKhach><DangKy /></ChiKhach> },
   { path: '/xac-thuc-email', element: <ChiKhach><XacThucEmail /></ChiKhach> },

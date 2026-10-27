@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
@@ -26,7 +25,6 @@ import vn.vietbac.phongkham.chung.TruyVan;
  * 7 ngày nếu bệnh nhân không gửi thêm thông tin.
  */
 @Service
-@RequiredArgsConstructor
 public class GopYService {
 
     public static final int HAN_GIO = 48;
@@ -39,6 +37,14 @@ public class GopYService {
     private final LuuAnh luuAnh;
     private final TruyVan tv;
     private final DongHo dongHo;
+
+    public GopYService(ThongBaoService thongBao, NhatKyService nhatKy, LuuAnh luuAnh, TruyVan tv, DongHo dongHo) {
+        this.thongBao = thongBao;
+        this.nhatKy = nhatKy;
+        this.luuAnh = luuAnh;
+        this.tv = tv;
+        this.dongHo = dongHo;
+    }
 
     // ================= Bệnh nhân (UC12.2) =================
 

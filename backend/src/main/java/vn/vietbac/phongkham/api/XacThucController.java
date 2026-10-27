@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.ChuanHoa;
 import vn.vietbac.phongkham.chung.KhongTimThay;
 import vn.vietbac.phongkham.chung.TruyVan;
@@ -25,11 +24,15 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 /** Gói 1: đăng ký, xác thực email, đăng nhập, đăng xuất, đổi/khôi phục mật khẩu. */
 @RestController
 @RequestMapping("/api")
-@RequiredArgsConstructor
 public class XacThucController {
 
     private final XacThucService xacThuc;
     private final TruyVan tv;
+
+    public XacThucController(XacThucService xacThuc, TruyVan tv) {
+        this.xacThuc = xacThuc;
+        this.tv = tv;
+    }
 
     @Value("${phongkham.che-do-thu}")
     private String cheDoThu;
@@ -74,6 +77,14 @@ public class XacThucController {
         }
         String csdl = tv.giaTri("SELECT DATABASE()");
         return Map.of("che_do_thu", true, "csdl", csdl == null ? "" : csdl);
+    }
+
+    /** Thông tin liên hệ của phòng khám cho chân trang (công khai, không kèm tài khoản ngân hàng). */
+    @GetMapping("/thong-tin-phong-kham")
+    public Map<String, Object> thongTinPhongKham() {
+        Map<String, Object> tt = tv.mot("""
+                SELECT TenPhongKham, GioiThieu, DiaChi, GioLamViec, Hotline, Email FROM ThongTinPhongKham WHERE Id = 1""");
+        return tt == null ? Map.of() : tt;
     }
 
     @PostMapping("/auth/dang-ky")

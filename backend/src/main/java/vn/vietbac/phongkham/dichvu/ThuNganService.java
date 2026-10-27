@@ -13,7 +13,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
@@ -24,7 +23,6 @@ import vn.vietbac.phongkham.chung.TruyVan;
  * chỉ định cùng lượt khám được thu một lần; phiếu đã thu vào hàng chờ của phòng cận lâm sàng.
  */
 @Service
-@RequiredArgsConstructor
 public class ThuNganService {
 
     private static final List<String> HINH_THUC = List.of("TIEN_MAT", "CHUYEN_KHOAN");
@@ -33,6 +31,13 @@ public class ThuNganService {
     private final NhatKyService nhatKy;
     private final TruyVan tv;
     private final DongHo dongHo;
+
+    public ThuNganService(ThongBaoService thongBao, NhatKyService nhatKy, TruyVan tv, DongHo dongHo) {
+        this.thongBao = thongBao;
+        this.nhatKy = nhatKy;
+        this.tv = tv;
+        this.dongHo = dongHo;
+    }
 
     /** Các lượt khám còn phiếu chờ tạm thu, kèm từng phiếu; người chỉ định sớm nhất đứng đầu. */
     @Transactional(readOnly = true)

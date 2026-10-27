@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
 import vn.vietbac.phongkham.chung.LuuAnh;
 import vn.vietbac.phongkham.chung.TruyVan;
@@ -28,7 +27,6 @@ import vn.vietbac.phongkham.chung.TruyVan;
  * cầu thang 30 giây mỗi tầng, thang máy 60 giây.
  */
 @Service
-@RequiredArgsConstructor
 public class MatBangService {
 
     private static final List<String> LOAI_DIEM = List.of("PHONG", "HANH_LANG", "NGA_RE", "CAU_THANG", "THANG_MAY",
@@ -37,6 +35,12 @@ public class MatBangService {
     private final NhatKyService nhatKy;
     private final LuuAnh luuAnh;
     private final TruyVan tv;
+
+    public MatBangService(NhatKyService nhatKy, LuuAnh luuAnh, TruyVan tv) {
+        this.nhatKy = nhatKy;
+        this.luuAnh = luuAnh;
+        this.tv = tv;
+    }
 
     // ================= Đọc sơ đồ =================
 

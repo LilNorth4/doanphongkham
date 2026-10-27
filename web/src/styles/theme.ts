@@ -1,20 +1,21 @@
 import type { ThemeConfig } from 'antd'
 
-/** Bảng màu theo mẫu thiết kế "Giao diện Hệ thống Quản lý Phòng khám", dùng chung cho antd và CSS. */
+/** Bảng màu xanh dương (tham khảo myhospital.vn), dùng chung cho antd và CSS. */
 export const MAU = {
-  chinh: '#0F6E64', // nút chính, liên kết, mục đang chọn
-  chinhDam: '#0A4F48',
-  chinhNhat: '#E3F1EE', // nền mục đang chọn, nhãn
-  nhan: '#2BB3A0', // logo, ảnh đại diện
-  toi: '#0E3B36', // thanh bên, cột giới thiệu
-  toiChon: '#1C5A52', // mục menu đang chọn trên nền tối
-  toiChu: '#CFE6E1',
-  toiPhu: '#A9CFC8',
-  nen: '#F3F6F5',
-  vien: '#DCE4E2',
-  vienO: '#C3CFCC', // viền ô nhập, nút phụ
-  chu: '#12211E',
-  chuPhu: '#52615D',
+  chinh: '#1565D8', // nút chính, liên kết, mục đang chọn
+  chinhDam: '#0D4FB0',
+  chinhNhat: '#E8F1FD', // nền mục đang chọn, nhãn
+  nhan: '#19B5C9', // logo, ảnh đại diện
+  cam: '#F26B1D', // điểm nhấn (dấu cộng trên logo, nút kêu gọi)
+  toi: '#0B2A5B', // ngăn menu điện thoại, cột giới thiệu
+  toiChon: '#1B3F7A', // mục menu đang chọn trên nền tối
+  toiChu: '#D3E0F5',
+  toiPhu: '#A7BDE0',
+  nen: '#F4F7FB',
+  vien: '#DFE6F0',
+  vienO: '#C4CFDE', // viền ô nhập, nút phụ
+  chu: '#0F1B2D',
+  chuPhu: '#526075',
   loi: '#B42318',
 }
 
@@ -28,7 +29,7 @@ export const giaoDien: ThemeConfig = {
     colorLinkHover: MAU.chinhDam,
     // Nền nhạt đặt tay: antd tự sinh từ màu chính đậm ra nền xám đục, hộp thông tin trông như bị vô hiệu
     colorInfoBg: MAU.chinhNhat,
-    colorInfoBorder: '#B5D9D2',
+    colorInfoBorder: '#B9D3F7',
     colorSuccess: '#1E7A4C',
     colorSuccessBg: '#E7F4EC',
     colorSuccessBorder: '#B4DCC3',
@@ -63,12 +64,16 @@ export const giaoDien: ThemeConfig = {
       itemMarginInline: 12,
       iconSize: 16,
     },
-    Card: { headerFontSize: 16, paddingLG: 20 },
-    Button: { fontWeight: 600, primaryShadow: 'none', defaultShadow: 'none', dangerShadow: 'none', borderRadius: 9 },
-    Table: { headerBg: '#fff', headerColor: MAU.chuPhu, headerSplitColor: 'transparent', rowSelectedBg: MAU.chinhNhat, borderColor: '#EEF2F1' },
+    Card: { headerFontSize: 16, paddingLG: 20, borderRadiusLG: 16 },
+    // Nút bo tròn kiểu viên thuốc như mẫu
+    Button: {
+      fontWeight: 600, primaryShadow: 'none', defaultShadow: 'none', dangerShadow: 'none',
+      borderRadius: 999, borderRadiusLG: 999, borderRadiusSM: 999,
+    },
+    Table: { headerBg: '#fff', headerColor: MAU.chuPhu, headerSplitColor: 'transparent', rowSelectedBg: MAU.chinhNhat, borderColor: '#EEF2F7' },
     Tabs: { itemSelectedColor: MAU.chinh, inkBarColor: MAU.chinh, titleFontSize: 14 },
-    Segmented: { trackBg: '#E3EAE8', itemSelectedBg: '#fff' },
-    Tag: { defaultBg: '#EEF1F0', defaultColor: '#3B4744' },
+    Segmented: { trackBg: '#E4EAF3', itemSelectedBg: '#fff' },
+    Tag: { defaultBg: '#EEF2F8', defaultColor: '#3B4658' },
     Steps: { colorPrimary: MAU.chinh },
     Drawer: { colorBgElevated: '#fff' },
   },

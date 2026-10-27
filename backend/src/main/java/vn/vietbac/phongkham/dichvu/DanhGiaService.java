@@ -16,7 +16,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import tools.jackson.databind.ObjectMapper;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
@@ -30,7 +29,6 @@ import vn.vietbac.phongkham.chung.TruyVan;
  * (UC15.10), phân tích cảm xúc, chủ đề (UC15.8) và báo cáo đánh giá cho quản trị viên (UC13.3).
  */
 @Service
-@RequiredArgsConstructor
 public class DanhGiaService {
 
     public static final int HAN_NGAY = 7;
@@ -62,6 +60,15 @@ public class DanhGiaService {
     private final TruyVan tv;
     private final DongHo dongHo;
     private final ObjectMapper json;
+
+    public DanhGiaService(ThongBaoService thongBao, NhatKyService nhatKy, LuuAnh luuAnh, TruyVan tv, DongHo dongHo, ObjectMapper json) {
+        this.thongBao = thongBao;
+        this.nhatKy = nhatKy;
+        this.luuAnh = luuAnh;
+        this.tv = tv;
+        this.dongHo = dongHo;
+        this.json = json;
+    }
 
     // ================= Bệnh nhân =================
 
@@ -126,9 +133,7 @@ public class DanhGiaService {
                 diem(e.getValue(), TIEU_CHI.get(e.getKey()).toLowerCase(Locale.ROOT));
             }
         }
-        if (dv.values().stream().allMatch(v -> v == null)) {
-            throw new LoiNghiepVu("Vui lòng chấm ít nhất một tiêu chí dịch vụ");
-        }
+        // Tiêu chí dịch vụ không bắt buộc: bệnh nhân có thể chỉ chấm bác sĩ
         String nxBS = vanBan(b.nhanXetBacSi(), "Nhận xét về bác sĩ"), nxDV = vanBan(b.nhanXetDichVu(), "Nhận xét về dịch vụ");
         List<MultipartFile> tep = anh == null ? List.of() : anh.stream().filter(t -> t != null && !t.isEmpty()).toList();
         if (tep.size() > SO_ANH_TOI_DA) {

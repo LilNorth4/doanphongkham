@@ -840,6 +840,11 @@ export interface MauChiSo {
 export type ThuocQuanLy = ThuocDanhMuc & { TrangThai: TrangThaiDanhMuc }
 export interface BenhIcd { MaICD: string; TenBenh: string; TrangThai: TrangThaiDanhMuc }
 
+/** Thông tin liên hệ công khai của phòng khám (chân trang). */
+export interface ThongTinLienHe {
+  TenPhongKham: string; GioiThieu: string | null; DiaChi: string | null; GioLamViec: string | null; Hotline: string | null
+  Email: string | null
+}
 export interface ThongTinPhongKham {
   TenPhongKham: string; GioiThieu: string | null; DiaChi: string; GioLamViec: string; Hotline: string
   Email: string | null; MaNganHang: string | null; SoTaiKhoan: string | null; TenTaiKhoan: string | null
@@ -939,6 +944,7 @@ function query(thamSo: Record<string, GiaTriQuery>) {
 export const api = {
   /** csdl chỉ có khi backend bật chế độ thử */
   cauHinh: () => goi<{ che_do_thu: boolean; csdl?: string }>('/cau-hinh'),
+  thongTinLienHe: () => goi<ThongTinLienHe>('/thong-tin-phong-kham'),
 
   dangKy: (b: DangKyBenhNhan) => goi<{ ma_tk: number }>('/auth/dang-ky', 'POST', b),
   xacThucEmail: (dinh_danh: string, ma_otp: string) =>

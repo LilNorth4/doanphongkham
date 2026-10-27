@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
 import vn.vietbac.phongkham.chung.TruyVan;
 import vn.vietbac.phongkham.dichvu.QuanLyTaiKhoanService;
@@ -28,7 +27,6 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 /** Gói 2: quản lý tài khoản, phân quyền (UC2.7), nhật ký (UC2.8). */
 @RestController
 @RequestMapping("/api")
-@RequiredArgsConstructor
 public class QuanLyTaiKhoanController {
 
     private static final String QUAN_TRI = "TAI_KHOAN.QUAN_LY";
@@ -36,6 +34,11 @@ public class QuanLyTaiKhoanController {
 
     private final QuanLyTaiKhoanService qlTaiKhoan;
     private final TruyVan tv;
+
+    public QuanLyTaiKhoanController(QuanLyTaiKhoanService qlTaiKhoan, TruyVan tv) {
+        this.qlTaiKhoan = qlTaiKhoan;
+        this.tv = tv;
+    }
 
     public record NhanVienMoi(@JsonProperty("ho_ten") String hoTen, String email, String sdt,
                               @JsonProperty("loai_nhan_vien") String loaiNhanVien,
@@ -183,8 +186,9 @@ public class QuanLyTaiKhoanController {
 
     // ---------- Danh mục ----------
 
+    // Công khai (không nhận NguoiDung): trang giới thiệu hiện danh sách chuyên khoa cho khách chưa đăng nhập
     @GetMapping("/danh-muc/chuyen-khoa")
-    public List<Map<String, Object>> chuyenKhoa(NguoiDung nd) {
+    public List<Map<String, Object>> chuyenKhoa() {
         return tv.ds("SELECT MaCK, TenCK, MoTa, AnhDaiDien, PhiKhamCoBan FROM ChuyenKhoa WHERE TrangThai = 'HOAT_DONG' ORDER BY MaCK");
     }
 

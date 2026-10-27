@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import lombok.RequiredArgsConstructor;
 import vn.vietbac.phongkham.chung.ChuanHoa;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
@@ -25,7 +24,6 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
  * Email và SĐT là định danh đăng nhập nên không sửa ở đây.
  */
 @Service
-@RequiredArgsConstructor
 public class HoSoService {
 
     private static final String THU_MUC_ANH = "anh-dai-dien";
@@ -36,6 +34,15 @@ public class HoSoService {
     private final BenhNhanRepository benhNhanRepo;
     private final NhanVienRepository nhanVienRepo;
     private final NhatKyService nhatKy;
+
+    public HoSoService(TruyVan tv, DongHo dongHo, LuuAnh luuAnh, BenhNhanRepository benhNhanRepo, NhanVienRepository nhanVienRepo, NhatKyService nhatKy) {
+        this.tv = tv;
+        this.dongHo = dongHo;
+        this.luuAnh = luuAnh;
+        this.benhNhanRepo = benhNhanRepo;
+        this.nhanVienRepo = nhanVienRepo;
+        this.nhatKy = nhatKy;
+    }
 
     /** Thông tin sửa được; trường không thuộc vai trò (VD GioiThieu với bệnh nhân) bị bỏ qua. */
     public record CapNhat(String hoTen, LocalDate ngaySinh, String gioiTinh, String diaChi, String cccd,

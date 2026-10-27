@@ -13,7 +13,6 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
 import tools.jackson.databind.ObjectMapper;
 import vn.vietbac.phongkham.chung.ChuanHoa;
 import vn.vietbac.phongkham.chung.DongHo;
@@ -25,7 +24,6 @@ import vn.vietbac.phongkham.chung.TruyVan;
  * vắng mặt (UC7.9); kèm tóm tắt tiền sử (UC13.7) và thời gian chờ dự kiến (UC13.4, UC13.5, BR16, BR17).
  */
 @Service
-@RequiredArgsConstructor
 public class TiepDonService {
 
     private static final DateTimeFormatter NGAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -35,6 +33,14 @@ public class TiepDonService {
     private final TruyVan tv;
     private final DongHo dongHo;
     private final ObjectMapper json;
+
+    public TiepDonService(ThongBaoService thongBao, NhatKyService nhatKy, TruyVan tv, DongHo dongHo, ObjectMapper json) {
+        this.thongBao = thongBao;
+        this.nhatKy = nhatKy;
+        this.tv = tv;
+        this.dongHo = dongHo;
+        this.json = json;
+    }
 
     // ================= Hồ sơ bệnh nhân (UC7.8) =================
 

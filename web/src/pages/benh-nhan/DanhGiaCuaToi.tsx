@@ -169,7 +169,6 @@ function BieuMau({ mau, onXong, onDong }: { mau: BieuMauDanhGia; onXong: () => v
 
   const gui = async () => {
     if (!diemBs) { setLoi('Vui lòng chấm điểm bác sĩ'); return }
-    if (!Object.values(diem).some(Boolean)) { setLoi('Vui lòng chấm ít nhất một tiêu chí dịch vụ'); return }
     setLoi(null)
     setDangGui(true)
     try {
@@ -213,7 +212,7 @@ function BieuMau({ mau, onXong, onDong }: { mau: BieuMauDanhGia; onXong: () => v
       <section>
         <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 2 }}>Dịch vụ phòng khám</Typography.Title>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          Chấm ít nhất một tiêu chí; bỏ trống tiêu chí bạn không sử dụng (bấm lại vào sao để bỏ chọn).
+          Không bắt buộc: chấm tiêu chí bạn muốn, bỏ trống tiêu chí còn lại (bấm lại vào sao để bỏ chọn).
         </Typography.Text>
         <Flex vertical gap={4} style={{ marginTop: 8 }}>
           {TIEU_CHI_DANH_GIA.map((t) => (
