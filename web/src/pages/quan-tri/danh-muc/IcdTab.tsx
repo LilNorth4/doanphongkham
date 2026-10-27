@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import BangThichUng from '@/components/BangThichUng'
 import { api, type BenhIcd } from '@/lib/api'
 import { quyTac } from '@/lib/hangSo'
-import { CongTacTrangThai, TagTrangThai, thongBaoLoi } from './chung'
+import { CongTacTrangThai, NutXoa, TagTrangThai, thongBaoLoi } from './chung'
 
 /** UC3.8: mã bệnh ICD-10 bác sĩ chọn khi chẩn đoán. Mã không đổi được, chỉ sửa tên hoặc ngừng. */
 export default function IcdTab() {
@@ -53,11 +53,12 @@ export default function IcdTab() {
     { title: 'Tên bệnh', dataIndex: 'TenBenh' },
     { title: 'Trạng thái', dataIndex: 'TrangThai', render: (t) => <TagTrangThai tt={t} />, width: 110 },
     {
-      title: '', key: 'thao_tac', width: 110, align: 'right',
+      title: '', key: 'thao_tac', width: 150, align: 'right',
       render: (_, b) => (
         <Space>
           <Button size="small" icon={<EditOutlined />} onClick={() => mo(b)} aria-label="Sửa" />
           <CongTacTrangThai loai="icd" ma={b.MaICD} tt={b.TrangThai} ten={`mã ${b.MaICD}`} onXong={() => tai(tuKhoa || undefined)} />
+          <NutXoa ten={`mã ${b.MaICD}`} xoa={() => api.xoaIcd(b.MaICD)} onXong={() => tai(tuKhoa || undefined)} />
         </Space>
       ),
     },

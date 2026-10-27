@@ -139,6 +139,24 @@ public class DanhMucService {
         nhatKy.ghi(maTK, hoatDong ? "MO_DANH_MUC" : "NGUNG_DANH_MUC", "ChuyenKhoa", maCK, ten);
     }
 
+    /** Xóa chuyên khoa tạo nhầm (kèm dịch vụ khám của nó); đã có bác sĩ, phòng, lịch hoặc phiếu thì chỉ được ngừng. */
+    @Transactional
+    public void xoaChuyenKhoa(Integer maCK, Integer maTK) {
+        String ten = timThay(tv.giaTri("SELECT TenCK FROM ChuyenKhoa WHERE MaCK = ?", maCK), "chuyên khoa");
+        long daDung = tv.dem("""
+                SELECT (SELECT COUNT(*) FROM NhanVien WHERE MaCK = ?) + (SELECT COUNT(*) FROM Phong WHERE MaCK = ?)
+                     + (SELECT COUNT(*) FROM DangKyCho WHERE MaCK = ?) + (SELECT COUNT(*) FROM YeuCauDatLich WHERE MaCK = ?)
+                     + (SELECT COUNT(*) FROM PhieuChiDinh pcd JOIN DichVu dv ON dv.MaDV = pcd.MaDV WHERE dv.MaCK = ?)""",
+                maCK, maCK, maCK, maCK, maCK);
+        if (daDung > 0) {
+            throw new LoiNghiepVu("Chuyên khoa đã có bác sĩ, phòng, lịch hẹn hoặc phiếu dịch vụ nên không thể xóa. "
+                    + "Hãy ngừng chuyên khoa để giữ lịch sử");
+        }
+        tv.capNhat("DELETE FROM DichVu WHERE LoaiDV = 'KHAM' AND MaCK = ?", maCK);
+        tv.capNhat("DELETE FROM ChuyenKhoa WHERE MaCK = ?", maCK);
+        nhatKy.ghi(maTK, "XOA_DANH_MUC", "ChuyenKhoa", maCK, ten);
+    }
+
     @Transactional
     public String doiAnhChuyenKhoa(Integer maCK, MultipartFile anh, Integer maTK) {
         String cu = tv.giaTri("SELECT AnhDaiDien FROM ChuyenKhoa WHERE MaCK = ?", maCK);
@@ -471,6 +489,19 @@ public class DanhMucService {
         nhatKy.ghi(maTK, hoatDong ? "MO_DANH_MUC" : "NGUNG_DANH_MUC", "Thuoc", maThuoc, ten);
     }
 
+    /** Xóa thuốc nhập nhầm; đã có trong đơn thuốc hoặc hóa đơn thì chỉ được ngừng. */
+    @Transactional
+    public void xoaThuoc(Integer maThuoc, Integer maTK) {
+        String ten = timThay(tv.giaTri("SELECT TenThuoc FROM Thuoc WHERE MaThuoc = ?", maThuoc), "thuốc");
+        if (tv.dem("""
+                SELECT (SELECT COUNT(*) FROM ChiTietDonThuoc WHERE MaThuoc = ?)
+                     + (SELECT COUNT(*) FROM ChiTietHoaDon WHERE MaThuoc = ?)""", maThuoc, maThuoc) > 0) {
+            throw new LoiNghiepVu("Thuốc đã được kê trong đơn nên không thể xóa. Hãy ngừng thuốc để giữ lịch sử");
+        }
+        tv.capNhat("DELETE FROM Thuoc WHERE MaThuoc = ?", maThuoc);
+        nhatKy.ghi(maTK, "XOA_DANH_MUC", "Thuoc", maThuoc, ten);
+    }
+
     private void kiemTraThuoc(Integer maThuoc, Thuoc b) {
         String ten = batBuoc(b.tenThuoc(), "tên thuốc");
         batBuoc(b.donViTinh(), "đơn vị tính");
@@ -521,6 +552,17 @@ public class DanhMucService {
         String ten = timThay(tv.giaTri("SELECT TenBenh FROM BenhICD WHERE MaICD = ?", maICD), "mã ICD");
         tv.capNhat("UPDATE BenhICD SET TrangThai = ? WHERE MaICD = ?", hoatDong ? HOAT_DONG : NGUNG, maICD);
         nhatKy.ghi(maTK, hoatDong ? "MO_DANH_MUC" : "NGUNG_DANH_MUC", "BenhICD", maICD, ten);
+    }
+
+    /** Xóa mã ICD nhập nhầm; đã dùng trong hồ sơ bệnh án thì chỉ được ngừng. */
+    @Transactional
+    public void xoaICD(String maICD, Integer maTK) {
+        String ten = timThay(tv.giaTri("SELECT TenBenh FROM BenhICD WHERE MaICD = ?", maICD), "mã ICD");
+        if (tv.dem("SELECT COUNT(*) FROM HoSoBenhAn WHERE MaICD = ?", maICD) > 0) {
+            throw new LoiNghiepVu("Mã " + maICD + " đã dùng trong hồ sơ bệnh án nên không thể xóa. Hãy ngừng mã để giữ lịch sử");
+        }
+        tv.capNhat("DELETE FROM BenhICD WHERE MaICD = ?", maICD);
+        nhatKy.ghi(maTK, "XOA_DANH_MUC", "BenhICD", maICD, ten);
     }
 
     // ================= Thông tin phòng khám (UC3.6) =================

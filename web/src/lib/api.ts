@@ -380,6 +380,8 @@ export interface ThuocTrongDon {
   LieuDung: string | null
   CachDung: string | null
   SoNgayDung: number | null
+  /** BR35: lý do vẫn kê thuốc trùng dị ứng (chỉ có ở màn hình bác sĩ) */
+  LyDoBoQuaCanhBao?: string | null
   DonGia: string
   GiaBHYT: string | null
 }
@@ -801,7 +803,12 @@ export interface LuuHoSoBenhAn {
   ngay_tai_kham?: string | null
   /** Không gửi = giữ nguyên đơn (bác sĩ không có quyền kê đơn) */
   don_thuoc?: { ma_thuoc: number; so_luong: number; lieu_dung?: string | null; cach_dung?: string | null
-    so_ngay_dung?: number | null }[]
+    so_ngay_dung?: number | null; ly_do_canh_bao?: string | null }[]
+}
+
+/** BR35: CAO = trùng dị ứng (phải nhập lý do mới kê được), THUONG = trùng hoạt chất trong đơn */
+export interface CanhBaoThuoc {
+  ma_thuoc: number; muc: 'CAO' | 'THUONG'; noi_dung: string
 }
 
 export interface ThuocDanhMuc {
@@ -1041,6 +1048,8 @@ export const api = {
   chiTietKham: (maLk: number) => goi<LuotKhamChiTiet>(`/kham/${maLk}`),
   lanKhamTruoc: (maLk: number, maLkCu: number) => goi<LanKham>(`/kham/${maLk}/lan-truoc/${maLkCu}`),
   luuHoSoBenhAn: (maLk: number, b: LuuHoSoBenhAn) => goi(`/kham/${maLk}/ho-so`, 'PUT', b),
+  kiemTraDon: (maLk: number, ma_thuoc: number[]) =>
+    goi<CanhBaoThuoc[]>(`/kham/${maLk}/kiem-tra-don`, 'POST', { ma_thuoc }),
   chiDinhCls: (maLk: number, ma_dv: number[], yeu_cau?: string) =>
     goi<{ ma_pcd: number[] }>(`/kham/${maLk}/chi-dinh`, 'POST', { ma_dv, yeu_cau }),
   huyChiDinh: (maPcd: number, ly_do: string) => goi(`/kham/chi-dinh/${maPcd}/huy`, 'POST', { ly_do }),
@@ -1186,6 +1195,7 @@ export const api = {
     goi<{ ma_ck: number }>('/quan-ly/chuyen-khoa', 'POST', b),
   suaChuyenKhoa: (ma: number, b: { ten_ck: string; mo_ta?: string | null; phi_kham: number }) =>
     goi(`/quan-ly/chuyen-khoa/${ma}`, 'PUT', b),
+  xoaChuyenKhoa: (ma: number) => goi(`/quan-ly/chuyen-khoa/${ma}`, 'DELETE'),
   doiAnhChuyenKhoa: (ma: number, anh: File) => {
     const f = new FormData()
     f.append('anh', anh)
@@ -1207,9 +1217,11 @@ export const api = {
   qlThuoc: () => goi<ThuocQuanLy[]>('/quan-ly/thuoc'),
   themThuoc: (b: Record<string, unknown>) => goi<{ ma_thuoc: number }>('/quan-ly/thuoc', 'POST', b),
   suaThuoc: (ma: number, b: Record<string, unknown>) => goi(`/quan-ly/thuoc/${ma}`, 'PUT', b),
+  xoaThuoc: (ma: number) => goi(`/quan-ly/thuoc/${ma}`, 'DELETE'),
   qlIcd: (tu_khoa?: string) => goi<BenhIcd[]>(`/quan-ly/icd${query({ tu_khoa })}`),
   themIcd: (ma_icd: string, ten_benh: string) => goi('/quan-ly/icd', 'POST', { ma_icd, ten_benh }),
   suaIcd: (ma: string, ten_benh: string) => goi(`/quan-ly/icd/${encodeURIComponent(ma)}`, 'PUT', { ten_benh }),
+  xoaIcd: (ma: string) => goi(`/quan-ly/icd/${encodeURIComponent(ma)}`, 'DELETE'),
   /** Ngừng / mở lại một mục danh mục. */
   doiTrangThaiDanhMuc: (loai: 'chuyen-khoa' | 'phong' | 'dich-vu' | 'chi-so' | 'thuoc' | 'icd', ma: number | string,
     hoat_dong: boolean) => goi(`/quan-ly/${loai}/${encodeURIComponent(ma)}/trang-thai`, 'POST', { hoat_dong }),

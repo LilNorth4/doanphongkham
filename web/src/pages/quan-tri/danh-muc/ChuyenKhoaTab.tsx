@@ -1,5 +1,5 @@
-import { CameraOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
-import { App, Avatar, Button, Flex, Form, Input, Modal, Space, Typography, Upload, type TableProps } from 'antd'
+import { CameraOutlined, DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
+import { App, Avatar, Button, Flex, Form, Input, Modal, Popconfirm, Space, Typography, Upload, type TableProps } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import BangThichUng from '@/components/BangThichUng'
 import { anhChuyenKhoa } from '@/lib/anh'
@@ -62,6 +62,16 @@ export default function ChuyenKhoaTab() {
     }
   }
 
+  const xoa = async (ck: ChuyenKhoaQuanLy) => {
+    try {
+      await api.xoaChuyenKhoa(ck.MaCK)
+      message.success(`Đã xóa chuyên khoa ${ck.TenCK}`)
+      tai()
+    } catch (e) {
+      message.error(thongBaoLoi(e))
+    }
+  }
+
   const cot: TableProps<ChuyenKhoaQuanLy>['columns'] = [
     {
       title: 'Chuyên khoa', key: 'ten',
@@ -86,10 +96,17 @@ export default function ChuyenKhoaTab() {
     { title: 'Phòng', dataIndex: 'SoPhong', width: 80 },
     { title: 'Trạng thái', dataIndex: 'TrangThai', render: (t) => <TagTrangThai tt={t} />, width: 110 },
     {
-      title: '', key: 'thao_tac', width: 110, align: 'right',
+      title: '', key: 'thao_tac', width: 150, align: 'right',
       render: (_, c) => (
         <Space>
           <Button size="small" icon={<EditOutlined />} onClick={() => mo(c)} aria-label="Sửa" />
+          {/* Chỉ chuyên khoa chưa có bác sĩ, phòng mới xóa được; máy chủ kiểm tra thêm lịch hẹn, phiếu dịch vụ */}
+          {c.SoBacSi === 0 && c.SoPhong === 0 && (
+            <Popconfirm title={`Xóa chuyên khoa ${c.TenCK}?`} description="Xóa luôn dịch vụ khám của chuyên khoa này."
+              okText="Xóa" okButtonProps={{ danger: true }} cancelText="Không" onConfirm={() => xoa(c)}>
+              <Button size="small" danger icon={<DeleteOutlined />} aria-label="Xóa" />
+            </Popconfirm>
+          )}
           <CongTacTrangThai loai="chuyen-khoa" ma={c.MaCK} tt={c.TrangThai} ten={`chuyên khoa ${c.TenCK}`} onXong={tai} />
         </Space>
       ),

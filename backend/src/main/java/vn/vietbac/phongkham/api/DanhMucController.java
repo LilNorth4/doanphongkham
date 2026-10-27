@@ -126,6 +126,13 @@ public class DanhMucController {
         return XacThucController.OK;
     }
 
+    @DeleteMapping("/chuyen-khoa/{ma}")
+    @CanQuyen(DANH_MUC)
+    public Map<String, Object> xoaChuyenKhoa(@PathVariable Integer ma, NguoiDung nd) {
+        danhMuc.xoaChuyenKhoa(ma, nd.maTK());
+        return XacThucController.OK;
+    }
+
     @PostMapping("/chuyen-khoa/{ma}/anh")
     @CanQuyen(DANH_MUC)
     public Map<String, Object> anhChuyenKhoa(@PathVariable Integer ma, @RequestPart("anh") MultipartFile anh, NguoiDung nd) {
@@ -255,6 +262,13 @@ public class DanhMucController {
         return XacThucController.OK;
     }
 
+    @DeleteMapping("/thuoc/{ma}")
+    @CanQuyen(DANH_MUC)
+    public Map<String, Object> xoaThuoc(@PathVariable Integer ma, NguoiDung nd) {
+        danhMuc.xoaThuoc(ma, nd.maTK());
+        return XacThucController.OK;
+    }
+
     // ---------- ICD-10 ----------
 
     @GetMapping("/icd")
@@ -281,6 +295,13 @@ public class DanhMucController {
     @CanQuyen(DANH_MUC)
     public Map<String, Object> trangThaiIcd(@PathVariable String ma, @RequestBody TrangThai b, NguoiDung nd) {
         danhMuc.doiTrangThaiICD(ma, b.hoatDong(), nd.maTK());
+        return XacThucController.OK;
+    }
+
+    @DeleteMapping("/icd/{ma}")
+    @CanQuyen(DANH_MUC)
+    public Map<String, Object> xoaIcd(@PathVariable String ma, NguoiDung nd) {
+        danhMuc.xoaICD(ma, nd.maTK());
         return XacThucController.OK;
     }
 

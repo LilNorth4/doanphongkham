@@ -1,4 +1,5 @@
-import { App, InputNumber, Popconfirm, Switch, Tag, type InputNumberProps } from 'antd'
+import { DeleteOutlined } from '@ant-design/icons'
+import { App, Button, InputNumber, Popconfirm, Switch, Tag, type InputNumberProps } from 'antd'
 import { useState } from 'react'
 import { api, LoiApi, type TrangThaiDanhMuc } from '@/lib/api'
 
@@ -53,6 +54,30 @@ export function CongTacTrangThai({ loai, ma, tt, ten, onXong }: {
     <Popconfirm title={`Ngừng ${ten}?`} description="Mục ngừng sẽ không còn để chọn; dữ liệu cũ vẫn giữ nguyên."
       okText="Ngừng" okButtonProps={{ danger: true }} cancelText="Đóng" onConfirm={() => doi(false)}>
       <Switch size="small" checked loading={dangGui} aria-label={`Ngừng ${ten}`} />
+    </Popconfirm>
+  )
+}
+
+/** Nút xóa mục nhập nhầm; máy chủ chặn nếu mục đã được dùng (khi đó chỉ được ngừng). */
+export function NutXoa({ ten, xoa, onXong }: { ten: string; xoa: () => Promise<unknown>; onXong: () => void }) {
+  const { message } = App.useApp()
+  const [dangGui, setDangGui] = useState(false)
+  const chay = async () => {
+    setDangGui(true)
+    try {
+      await xoa()
+      message.success(`Đã xóa ${ten}`)
+      onXong()
+    } catch (e) {
+      message.error(thongBaoLoi(e))
+    } finally {
+      setDangGui(false)
+    }
+  }
+  return (
+    <Popconfirm title={`Xóa ${ten}?`} description="Chỉ xóa được mục chưa dùng; mục đã dùng hãy ngừng để giữ lịch sử."
+      okText="Xóa" okButtonProps={{ danger: true }} cancelText="Không" onConfirm={chay}>
+      <Button size="small" danger icon={<DeleteOutlined />} loading={dangGui} aria-label={`Xóa ${ten}`} />
     </Popconfirm>
   )
 }

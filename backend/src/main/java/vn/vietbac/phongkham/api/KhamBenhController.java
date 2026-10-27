@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import vn.vietbac.phongkham.chung.CanhBaoThuoc;
 import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.dichvu.KhamBenhService;
 import vn.vietbac.phongkham.dichvu.KhamBenhService.CapNhatHoSo;
@@ -36,7 +37,11 @@ public class KhamBenhController {
 
     public record Thuoc(@JsonProperty("ma_thuoc") Integer maThuoc, @JsonProperty("so_luong") Integer soLuong,
                         @JsonProperty("lieu_dung") String lieuDung, @JsonProperty("cach_dung") String cachDung,
-                        @JsonProperty("so_ngay_dung") Integer soNgayDung) {
+                        @JsonProperty("so_ngay_dung") Integer soNgayDung,
+                        @JsonProperty("ly_do_canh_bao") String lyDoCanhBao) {
+    }
+
+    public record KiemTraDon(@JsonProperty("ma_thuoc") List<Integer> maThuoc) {
     }
 
     public record LuuHoSo(Integer mach, @JsonProperty("huyet_ap") String huyetAp,
@@ -98,11 +103,19 @@ public class KhamBenhController {
     @CanQuyen("KHAM.THUC_HIEN")
     public Map<String, Object> luuHoSo(@PathVariable Integer maLK, @RequestBody LuuHoSo b, NguoiDung nd) {
         List<ThuocKe> don = b.donThuoc() == null ? null : b.donThuoc().stream()
-                .map(t -> new ThuocKe(t.maThuoc(), t.soLuong(), t.lieuDung(), t.cachDung(), t.soNgayDung())).toList();
+                .map(t -> new ThuocKe(t.maThuoc(), t.soLuong(), t.lieuDung(), t.cachDung(), t.soNgayDung(), t.lyDoCanhBao()))
+                .toList();
         kham.luuHoSo(maLK, bacSi(nd), new CapNhatHoSo(b.mach(), b.huyetAp(), b.nhietDo(), b.canNang(), b.chieuCao(),
                 b.trieuChung(), b.khamLamSang(), b.maICD(), b.chanDoan(), b.loiDan(), b.ngayTaiKham(), don),
                 nd.co("KHAM.KE_DON"), nd.maTK());
         return XacThucController.OK;
+    }
+
+    /** BR35: cảnh báo dị ứng / trùng hoạt chất cho các thuốc đang kê (chưa lưu). */
+    @PostMapping("/kham/{maLK}/kiem-tra-don")
+    @CanQuyen("KHAM.KE_DON")
+    public List<CanhBaoThuoc.CanhBao> kiemTraDon(@PathVariable Integer maLK, @RequestBody KiemTraDon b, NguoiDung nd) {
+        return kham.kiemTraDon(maLK, bacSi(nd), b.maThuoc());
     }
 
     @PostMapping("/kham/{maLK}/chi-dinh")

@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import tools.jackson.databind.ObjectMapper;
+import vn.vietbac.phongkham.chung.CanhBaoThuoc;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
@@ -56,7 +58,9 @@ public class KhamBenhService {
         this.json = json;
     }
 
-    public record ThuocKe(Integer maThuoc, Integer soLuong, String lieuDung, String cachDung, Integer soNgayDung) {
+    /** lyDoCanhBao: lý do vẫn kê thuốc trùng dị ứng (BR35), bắt buộc khi có cảnh báo mức cao. */
+    public record ThuocKe(Integer maThuoc, Integer soLuong, String lieuDung, String cachDung, Integer soNgayDung,
+                          String lyDoCanhBao) {
     }
 
     public record CapNhatHoSo(Integer mach, String huyetAp, BigDecimal nhietDo, BigDecimal canNang, BigDecimal chieuCao,
@@ -233,12 +237,31 @@ public class KhamBenhService {
             if (!duocKeDon) {
                 throw new LoiQuyen("Bạn không có quyền kê đơn thuốc");
             }
-            luuDonThuoc(maHSBA, b.donThuoc());
+            luuDonThuoc(maHSBA, (Integer) lk.get("MaBN"), b.donThuoc());
         }
         ghiTruyCap(maTK, maHSBA, "CAP_NHAT");
     }
 
-    private void luuDonThuoc(Integer maHSBA, List<ThuocKe> ds) {
+    /** BR35: cảnh báo dị ứng (mức cao) và trùng hoạt chất (mức thường) cho các thuốc đang kê, chưa lưu. */
+    @Transactional(readOnly = true)
+    public List<CanhBaoThuoc.CanhBao> kiemTraDon(Integer maLK, Integer maBS, List<Integer> dsMaThuoc) {
+        Map<String, Object> lk = luotCuaBacSi(maLK, maBS, false);
+        return canhBaoDon((Integer) lk.get("MaBN"), dsMaThuoc);
+    }
+
+    private List<CanhBaoThuoc.CanhBao> canhBaoDon(Integer maBN, List<Integer> dsMaThuoc) {
+        if (dsMaThuoc == null || dsMaThuoc.isEmpty()) {
+            return List.of();
+        }
+        String diUng = tv.giaTri("SELECT DiUng FROM BenhNhan WHERE MaBN = ?", maBN);
+        List<CanhBaoThuoc.Thuoc> don = tv.ds("SELECT MaThuoc, TenThuoc, HoatChat FROM Thuoc WHERE MaThuoc IN (?)",
+                        new ArrayList<>(new LinkedHashSet<>(dsMaThuoc))).stream()
+                .map(t -> new CanhBaoThuoc.Thuoc((Integer) t.get("MaThuoc"), (String) t.get("TenThuoc"), (String) t.get("HoatChat")))
+                .toList();
+        return CanhBaoThuoc.kiemTra(diUng, don);
+    }
+
+    private void luuDonThuoc(Integer maHSBA, Integer maBN, List<ThuocKe> ds) {
         Set<Integer> daCo = new HashSet<>();
         for (ThuocKe t : ds) {
             if (t.maThuoc() == null || t.soLuong() == null || t.soLuong() <= 0) {
@@ -246,6 +269,22 @@ public class KhamBenhService {
             }
             if (!daCo.add(t.maThuoc())) {
                 throw new LoiNghiepVu("Một thuốc chỉ ghi một dòng trong đơn");
+            }
+        }
+        // BR35: thuốc trùng dị ứng chỉ kê được khi có lý do; trùng hoạt chất chỉ cảnh báo, không chặn
+        Map<Integer, String> diUng = new HashMap<>();
+        for (CanhBaoThuoc.CanhBao cb : canhBaoDon(maBN, ds.stream().map(ThuocKe::maThuoc).toList())) {
+            if (CanhBaoThuoc.CAO.equals(cb.muc())) {
+                diUng.putIfAbsent(cb.maThuoc(), cb.noiDung());
+            }
+        }
+        for (ThuocKe t : ds) {
+            String lyDo = rong(t.lyDoCanhBao());
+            if (diUng.containsKey(t.maThuoc()) && lyDo == null) {
+                throw new LoiNghiepVu(diUng.get(t.maThuoc()) + ". Nhập lý do để tiếp tục kê hoặc chọn thuốc khác");
+            }
+            if (lyDo != null && lyDo.length() > 255) {
+                throw new LoiNghiepVu("Lý do tiếp tục kê tối đa 255 ký tự");
             }
         }
         Integer maDon = tv.giaTri("SELECT MaDon FROM DonThuoc WHERE MaHSBA = ?", maHSBA);
@@ -272,10 +311,11 @@ public class KhamBenhService {
                 throw new LoiNghiepVu("Số ngày dùng " + thuoc.get("TenThuoc") + " từ 1 đến 90 ngày");
             }
             tv.capNhat("""
-                    INSERT INTO ChiTietDonThuoc (MaDon, MaThuoc, SoLuong, LieuDung, CachDung, SoNgayDung, DonGia, GiaBHYT)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    INSERT INTO ChiTietDonThuoc (MaDon, MaThuoc, SoLuong, LieuDung, CachDung, SoNgayDung,
+                                                 LyDoBoQuaCanhBao, DonGia, GiaBHYT)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     maDon, t.maThuoc(), t.soLuong(), rong(t.lieuDung()), rong(t.cachDung()), t.soNgayDung(),
-                    thuoc.get("DonGia"), thuoc.get("GiaBHYT"));
+                    diUng.containsKey(t.maThuoc()) ? rong(t.lyDoCanhBao()) : null, thuoc.get("DonGia"), thuoc.get("GiaBHYT"));
         }
     }
 
@@ -487,7 +527,12 @@ public class KhamBenhService {
         if (chuSoHuu == null || !chuSoHuu.equals(maBN)) {
             throw new KhongTimThay("Không tìm thấy hồ sơ khám");
         }
-        return hoSoDayDu(maLK, maTK);
+        Map<String, Object> kq = hoSoDayDu(maLK, maTK);
+        // Lý do bỏ qua cảnh báo dị ứng (BR35) là ghi chú chuyên môn của bác sĩ, không hiện cho bệnh nhân
+        if (kq.get("HoSo") instanceof Map<?, ?> hs && hs.get("DonThuoc") instanceof List<?> don) {
+            don.forEach(t -> ((Map<?, ?>) t).remove("LyDoBoQuaCanhBao"));
+        }
+        return kq;
     }
 
     // ================= Dùng chung =================
@@ -518,7 +563,7 @@ public class KhamBenhService {
         Integer maHSBA = (Integer) hs.get("MaHSBA");
         hs.put("DonThuoc", tv.ds("""
                 SELECT ct.MaThuoc, t.TenThuoc, t.HoatChat, t.HamLuong, t.DonViTinh, ct.SoLuong, ct.LieuDung, ct.CachDung,
-                       ct.SoNgayDung, ct.DonGia, ct.GiaBHYT
+                       ct.SoNgayDung, ct.LyDoBoQuaCanhBao, ct.DonGia, ct.GiaBHYT
                 FROM DonThuoc d JOIN ChiTietDonThuoc ct ON ct.MaDon = d.MaDon JOIN Thuoc t ON t.MaThuoc = ct.MaThuoc
                 WHERE d.MaHSBA = ? ORDER BY t.TenThuoc""", maHSBA));
         hs.put("GhiChu", tv.ds("""

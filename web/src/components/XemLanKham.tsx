@@ -114,6 +114,9 @@ export function BangDonThuoc({ don }: { don: HoSoBenhAn['DonThuoc'] }) {
             <div>
               <Typography.Text strong>{t.TenThuoc}</Typography.Text> {t.HamLuong}
               {t.HoatChat && <div><Typography.Text type="secondary" style={{ fontSize: 12 }}>{t.HoatChat}</Typography.Text></div>}
+              {t.LyDoBoQuaCanhBao && (
+                <div><Typography.Text type="danger" style={{ fontSize: 12 }}>Kê dù trùng dị ứng: {t.LyDoBoQuaCanhBao}</Typography.Text></div>
+              )}
             </div>
           ),
         },

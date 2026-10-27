@@ -231,7 +231,7 @@ export const TEN_HANH_DONG: Record<string, { ten: string; mau: string }> = {
   SUA_DANH_MUC: { ten: 'Sửa danh mục', mau: 'cyan' },
   NGUNG_DANH_MUC: { ten: 'Ngừng danh mục', mau: 'orange' },
   MO_DANH_MUC: { ten: 'Mở lại danh mục', mau: 'lime' },
-  XOA_DANH_MUC: { ten: 'Xóa trên sơ đồ', mau: 'red' },
+  XOA_DANH_MUC: { ten: 'Xóa danh mục', mau: 'red' },
   GUI_DANH_GIA: { ten: 'Gửi đánh giá', mau: 'gold' },
   GUI_GOP_Y: { ten: 'Gửi góp ý', mau: 'geekblue' },
   BO_SUNG_GOP_Y: { ten: 'Bổ sung góp ý', mau: 'geekblue' },

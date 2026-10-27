@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import BangThichUng from '@/components/BangThichUng'
 import { api, type ThuocQuanLy } from '@/lib/api'
 import { quyTac, tien } from '@/lib/hangSo'
-import { CongTacTrangThai, ONhapTien, so, TagTrangThai, thongBaoLoi } from './chung'
+import { CongTacTrangThai, NutXoa, ONhapTien, so, TagTrangThai, thongBaoLoi } from './chung'
 
 interface GiaTri {
   ten_thuoc: string; hoat_chat?: string; ham_luong?: string; don_vi_tinh: string; don_gia: number; gia_bhyt?: number | null
@@ -77,11 +77,12 @@ export default function ThuocTab() {
     { title: 'Giá BHYT', dataIndex: 'GiaBHYT', render: (g) => (g == null ? 'Ngoài BHYT' : tien(g)), width: 120 },
     { title: 'Trạng thái', dataIndex: 'TrangThai', render: (t) => <TagTrangThai tt={t} />, width: 110 },
     {
-      title: '', key: 'thao_tac', width: 110, align: 'right',
+      title: '', key: 'thao_tac', width: 150, align: 'right',
       render: (_, t) => (
         <Space>
           <Button size="small" icon={<EditOutlined />} onClick={() => mo(t)} aria-label="Sửa" />
           <CongTacTrangThai loai="thuoc" ma={t.MaThuoc} tt={t.TrangThai} ten={`thuốc ${t.TenThuoc}`} onXong={tai} />
+          <NutXoa ten={`thuốc ${t.TenThuoc}`} xoa={() => api.xoaThuoc(t.MaThuoc)} onXong={tai} />
         </Space>
       ),
     },

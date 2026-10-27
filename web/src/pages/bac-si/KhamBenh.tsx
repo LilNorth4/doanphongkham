@@ -12,7 +12,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import XemLanKham, { BangDonThuoc, DsGhiChu, DsKetQuaCls, ThongTinHoSo } from '@/components/XemLanKham'
 import { useManHinhNho } from '@/hooks/manHinh'
 import {
-  api, LoiApi, type DichVuCls, type LanKham, type LuotKhamChiTiet, type LuuHoSoBenhAn, type ThuocDanhMuc,
+  api, LoiApi, type CanhBaoThuoc, type DichVuCls, type LanKham, type LuotKhamChiTiet, type LuuHoSoBenhAn, type ThuocDanhMuc,
 } from '@/lib/api'
 import { usePhien } from '@/lib/auth'
 import { TEN_LOAI_DV, thuNgay, tien, TRANG_THAI_LICH_HEN, tuoi } from '@/lib/hangSo'
@@ -29,7 +29,10 @@ interface GiaTriForm {
   chan_doan?: string
   loi_dan?: string
   ngay_tai_kham?: Dayjs | null
-  don_thuoc?: { ma_thuoc?: number; so_luong?: number; lieu_dung?: string; cach_dung?: string; so_ngay_dung?: number | null }[]
+  don_thuoc?: {
+    ma_thuoc?: number; so_luong?: number; lieu_dung?: string; cach_dung?: string; so_ngay_dung?: number | null
+    ly_do_canh_bao?: string
+  }[]
 }
 
 const so = (v: string | number | null | undefined) => (v == null ? null : Number(v))
@@ -79,7 +82,7 @@ export default function KhamBenh() {
       loi_dan: hs?.LoiDan ?? undefined, ngay_tai_kham: hs?.NgayTaiKham ? dayjs(hs.NgayTaiKham) : null,
       don_thuoc: hs?.DonThuoc.map((t) => ({
         ma_thuoc: t.MaThuoc, so_luong: t.SoLuong, lieu_dung: t.LieuDung ?? undefined, cach_dung: t.CachDung ?? undefined,
-        so_ngay_dung: t.SoNgayDung,
+        so_ngay_dung: t.SoNgayDung, ly_do_canh_bao: t.LyDoBoQuaCanhBao ?? undefined,
       })) ?? [],
     })
     if (hs?.MaICD) setDsIcd([{ MaICD: hs.MaICD, TenBenh: hs.TenBenh ?? '' }])
@@ -117,6 +120,18 @@ export default function KhamBenh() {
 
   const thuocTheoMa = useMemo(() => new Map(dsThuoc.map((t) => [t.MaThuoc, t])), [dsThuoc])
 
+  // BR35: kiểm tra lại mỗi khi danh sách thuốc trong đơn thay đổi (máy chủ đối chiếu dị ứng, hoạt chất)
+  const donDangKe = Form.useWatch('don_thuoc', form)
+  const maThuocDangKe = (donDangKe ?? []).map((t) => t?.ma_thuoc).filter((m): m is number => !!m).join(',')
+  const [canhBao, setCanhBao] = useState<CanhBaoThuoc[]>([])
+  const kiemTraLan = useRef(0)
+  useEffect(() => {
+    const lan = ++kiemTraLan.current
+    if (!dangKham || !duocKeDon || !maThuocDangKe) { setCanhBao([]); return }
+    api.kiemTraDon(maLk, maThuocDangKe.split(',').map(Number))
+      .then((d) => { if (lan === kiemTraLan.current) setCanhBao(d) }).catch(() => {})
+  }, [dangKham, duocKeDon, maLk, maThuocDangKe])
+
   const baoLoi = (e: unknown, macDinh: string) => message.error(e instanceof LoiApi ? e.message : macDinh)
 
   /** Gửi form lên máy chủ; trả về false nếu dữ liệu chưa hợp lệ hoặc lỗi. */
@@ -137,7 +152,7 @@ export default function KhamBenh() {
     if (duocKeDon) {
       b.don_thuoc = (v.don_thuoc ?? []).filter((t) => t.ma_thuoc).map((t) => ({
         ma_thuoc: t.ma_thuoc!, so_luong: t.so_luong!, lieu_dung: t.lieu_dung || null, cach_dung: t.cach_dung || null,
-        so_ngay_dung: t.so_ngay_dung ?? null,
+        so_ngay_dung: t.so_ngay_dung ?? null, ly_do_canh_bao: t.ly_do_canh_bao || null,
       }))
     }
     setDangLuu(true)
@@ -423,6 +438,9 @@ export default function KhamBenh() {
                       {(dong, { add, remove }) => (
                         <>
                           {dong.map(({ key, name }) => {
+                            const maThuoc = donDangKe?.[name]?.ma_thuoc
+                            const cbDong = maThuoc ? canhBao.filter((c) => c.ma_thuoc === maThuoc) : []
+                            const diUng = cbDong.find((c) => c.muc === 'CAO')
                             return (
                               <Row key={key} gutter={8} align="top" style={{ borderBottom: '1px dashed #f0f0f0', marginBottom: 8 }}>
                                 <Col xs={24} md={8}>
@@ -459,6 +477,24 @@ export default function KhamBenh() {
                                 <Col xs={3} md={1}>
                                   <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(name)} aria-label="Xóa thuốc" />
                                 </Col>
+                                {cbDong.length > 0 && (
+                                  <Col xs={24} style={{ marginBottom: 8 }}>
+                                    {/* BR35: trùng dị ứng phải nhập lý do mới lưu được; trùng hoạt chất chỉ nhắc */}
+                                    {diUng && (
+                                      <Alert type="error" showIcon icon={<WarningOutlined />} style={{ marginBottom: 8 }}
+                                        title={<><Typography.Text strong>Cảnh báo dị ứng: </Typography.Text>{diUng.noi_dung}</>}
+                                        description={
+                                          <Form.Item name={[name, 'ly_do_canh_bao']} style={{ marginBottom: 0, marginTop: 8 }}
+                                            rules={[{ required: true, whitespace: true, message: 'Nhập lý do tiếp tục kê hoặc chọn thuốc khác' }]}>
+                                            <Input maxLength={255} placeholder="Lý do vẫn kê thuốc này (VD: đã test dị ứng âm tính)" />
+                                          </Form.Item>
+                                        } />
+                                    )}
+                                    {cbDong.filter((c) => c.muc === 'THUONG').map((c) => (
+                                      <Alert key={c.noi_dung} type="warning" showIcon style={{ marginBottom: 8 }} title={c.noi_dung} />
+                                    ))}
+                                  </Col>
+                                )}
                               </Row>
                             )
                           })}

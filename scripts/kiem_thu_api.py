@@ -314,10 +314,13 @@ tc('KB04', N, 'Huyết áp sai định dạng bị chặn', lambda: loi(*goi(T['
 
 def t_luu_ho_so():
     s, thuoc = goi(T['bsk'], '/kham/danh-muc/thuoc')
+    # Đái tháo đường týp 2: thuốc đầu tay là Metformin
+    thuoc = [t for t in thuoc if 'metformin' in (t['HoatChat'] or '').lower()] or thuoc
     s, d = goi(T['bsk'], f"/kham/{S['lk_kham']}/ho-so", 'PUT', {
         'mach': 82, 'huyet_ap': '130/85', 'nhiet_do': 37.2, 'can_nang': 60, 'chieu_cao': 160, 'trieu_chung': 'Mệt, khát nhiều',
         'kham_lam_sang': 'Tỉnh, tiếp xúc tốt', 'ma_icd': 'E11.9', 'chan_doan': 'Theo dõi đái tháo đường týp 2', 'loi_dan': 'Hạn chế đồ ngọt',
-        'don_thuoc': [{'ma_thuoc': thuoc[0]['MaThuoc'], 'so_luong': 10, 'lieu_dung': '1 viên/lần', 'cach_dung': 'Uống sau ăn', 'so_ngay_dung': 5}]})
+        'don_thuoc': [{'ma_thuoc': thuoc[0]['MaThuoc'], 'so_luong': 60, 'lieu_dung': '1 viên x 2 lần/ngày', 'cach_dung': 'Uống ngay sau ăn sáng, tối',
+                       'so_ngay_dung': 30}]})
     return s == 200, f'{s} {d}'
 
 
@@ -542,16 +545,38 @@ def t_ck():
     s2, ds = goi(T['admin'], '/quan-ly/chuyen-khoa')
     ma = ma or next((x['MaCK'] for x in ds if x['TenCK'] == ten), None)
     s3 = goi(T['admin'], f'/quan-ly/chuyen-khoa/{ma}/trang-thai', 'POST', {'hoat_dong': False})[0]
-    return s == 200 and s3 == 200, f'thêm {s}, ngừng {s3}'
+    # Xóa luôn để danh mục không tích chuyên khoa "Mắt ..." sau mỗi lần chạy
+    s4 = goi(T['admin'], f'/quan-ly/chuyen-khoa/{ma}', 'DELETE')[0]
+    s5, ds = goi(T['admin'], '/quan-ly/chuyen-khoa')
+    con = any(x['TenCK'] == ten for x in ds)
+    return s == 200 and s3 == 200 and s4 == 200 and not con, f'thêm {s}, ngừng {s3}, xóa {s4}, còn trong danh sách: {con}'
 
 
-tc('DM01', N, 'Thêm / ngừng chuyên khoa', t_ck)
+tc('DM01', N, 'Thêm / ngừng / xóa chuyên khoa chưa dùng', t_ck)
+tc('DM01b', N, 'Không xóa được chuyên khoa đã có bác sĩ, lịch hẹn', lambda: loi(*goi(T['admin'], '/quan-ly/chuyen-khoa/1', 'DELETE'), 400, 'ngừng'))
 tc('DM02', N, 'Phí khám âm bị chặn', lambda: loi(*goi(T['admin'], '/quan-ly/chuyen-khoa', 'POST', {'ten_ck': 'Âm', 'phi_kham': -1})))
-tc('DM03', N, 'Thêm thuốc', lambda: (lambda r: (r[0] == 200, f'{r[0]} {r[1]}'))(goi(T['admin'], '/quan-ly/thuoc', 'POST', {
-    'ten_thuoc': 'Panadol ' + uuid.uuid4().hex[:3], 'hoat_chat': 'Paracetamol', 'ham_luong': '500mg', 'don_vi_tinh': 'Viên', 'don_gia': 1200})))
+def t_thuoc():
+    s, d = goi(T['admin'], '/quan-ly/thuoc', 'POST', {'ten_thuoc': 'Thuốc kiểm thử ' + uuid.uuid4().hex[:3], 'hoat_chat': 'Paracetamol',
+                                                     'ham_luong': '500mg', 'don_vi_tinh': 'Viên', 'don_gia': 1200})
+    # Xóa ngay để danh mục thuốc của bác sĩ không tích thuốc giả sau mỗi lần chạy
+    s2 = goi(T['admin'], f"/quan-ly/thuoc/{(d or {}).get('ma_thuoc')}", 'DELETE')[0]
+    s3, d3 = goi(T['admin'], '/quan-ly/thuoc/1', 'DELETE')
+    return s == 200 and s2 == 200 and s3 == 400, f'thêm {s} {d}, xóa {s2}; xóa thuốc đã kê: {s3} {(d3 or {}).get("detail")}'
+
+
+tc('DM03', N, 'Thêm / xóa thuốc chưa kê; thuốc đã kê không xóa được', t_thuoc)
 tc('DM04', N, 'Giá BHYT lớn hơn giá thuốc bị chặn', lambda: loi(*goi(T['admin'], '/quan-ly/thuoc', 'POST', {
     'ten_thuoc': 'Sai giá', 'don_vi_tinh': 'Viên', 'don_gia': 1000, 'gia_bhyt': 2000})))
-tc('DM05', N, 'Thêm mã ICD', lambda: (lambda r: (r[0] == 200, f'{r[0]} {r[1]}'))(goi(T['admin'], '/quan-ly/icd', 'POST', {'ma_icd': 'Z' + str(uuid.uuid4().int)[:2] + '.' + str(uuid.uuid4().int)[:1], 'ten_benh': 'Viêm kết mạc'})))
+def t_icd():
+    # U99.x: nhóm U dành cho mã tạm, không trùng mã bệnh thật
+    ma = 'U99.' + str(uuid.uuid4().int)[:2]
+    s, d = goi(T['admin'], '/quan-ly/icd', 'POST', {'ma_icd': ma, 'ten_benh': 'Mã kiểm thử'})
+    s2 = goi(T['admin'], f'/quan-ly/icd/{ma}', 'DELETE')[0]
+    s3 = goi(T['admin'], '/quan-ly/icd/I10', 'DELETE')[0]
+    return s == 200 and s2 == 200 and s3 == 400, f'thêm {ma} {s}, xóa {s2}; xóa I10 đã dùng: {s3}'
+
+
+tc('DM05', N, 'Thêm / xóa mã ICD chưa dùng; mã đã dùng không xóa được', t_icd)
 tc('DM06', N, 'Xem dịch vụ, mẫu chỉ số', lambda: (lambda a, b: (a[0] == 200 and b[0] == 200 and len(b[1]) > 0, f'{len(a[1])} dịch vụ, CBC {len(b[1])} chỉ số'))(
     goi(T['admin'], '/quan-ly/dich-vu'), goi(T['admin'], '/quan-ly/dich-vu/6/chi-so')))
 tc('DM07', N, 'Chỉ đường từ sảnh tới phòng nội soi (tầng 2)', lambda: (lambda r: (r[0] == 200 and r[1], json.dumps(r[1], ensure_ascii=False)[:90]))(goi(T['admin'], '/quan-ly/mat-bang/chi-duong?tu=1&den=20')))
