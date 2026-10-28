@@ -1,0 +1,919 @@
+[
+ {
+  "ma": "XT01",
+  "nhom": "1. Xác thực và phân quyền",
+  "mo_ta": "Đăng nhập email các vai trò",
+  "dat": true,
+  "ghi_chu": "đăng nhập đủ 9 tài khoản mẫu"
+ },
+ {
+  "ma": "XT02",
+  "nhom": "1. Xác thực và phân quyền",
+  "mo_ta": "Đăng nhập bằng số điện thoại",
+  "dat": true,
+  "ghi_chu": "an.hv qua SĐT"
+ },
+ {
+  "ma": "XT03",
+  "nhom": "1. Xác thực và phân quyền",
+  "mo_ta": "Sai mật khẩu báo lỗi chung",
+  "dat": true,
+  "ghi_chu": "400 Email/số điện thoại hoặc mật khẩu không đúng"
+ },
+ {
+  "ma": "XT04",
+  "nhom": "1. Xác thực và phân quyền",
+  "mo_ta": "Tài khoản bị khóa không đăng nhập được",
+  "dat": true,
+  "ghi_chu": "400 Tài khoản đã bị khóa: Nhiều lần đặt lịch rồi không đến khám. Vui lòng liên hệ quản trị viên"
+ },
+ {
+  "ma": "XT05",
+  "nhom": "1. Xác thực và phân quyền",
+  "mo_ta": "Tài khoản chưa xác thực email bị yêu cầu OTP",
+  "dat": true,
+  "ghi_chu": "400 {\"detail\": \"Tài khoản chưa xác thực email. Vui lòng nhập mã OTP đã gửi tới email\"}"
+ },
+ {
+  "ma": "XT06",
+  "nhom": "1. Xác thực và phân quyền",
+  "mo_ta": "Không có token gọi API cần đăng nhập → 401",
+  "dat": true,
+  "ghi_chu": "401 Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại"
+ },
+ {
+  "ma": "XT07",
+  "nhom": "1. Xác thực và phân quyền",
+  "mo_ta": "Bệnh nhân gọi API lễ tân → 403",
+  "dat": true,
+  "ghi_chu": "403 Bạn không có quyền thực hiện chức năng này"
+ },
+ {
+  "ma": "XT08",
+  "nhom": "1. Xác thực và phân quyền",
+  "mo_ta": "Bác sĩ gọi API quản trị tài khoản → 403",
+  "dat": true,
+  "ghi_chu": "403 Bạn không có quyền thực hiện chức năng này"
+ },
+ {
+  "ma": "XT09",
+  "nhom": "1. Xác thực và phân quyền",
+  "mo_ta": "Đăng ký bệnh nhân mới + xác thực OTP",
+  "dat": true,
+  "ghi_chu": "xác thực 200, đăng nhập được"
+ },
+ {
+  "ma": "XT10",
+  "nhom": "1. Xác thực và phân quyền",
+  "mo_ta": "Đăng ký trùng email bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Email đã được dùng cho tài khoản khác"
+ },
+ {
+  "ma": "XT11",
+  "nhom": "1. Xác thực và phân quyền",
+  "mo_ta": "Mật khẩu yếu bị chặn (BR15)",
+  "dat": true,
+  "ghi_chu": "400 Mật khẩu phải có ít nhất 8 ký tự, gồm cả chữ và số"
+ },
+ {
+  "ma": "XT12",
+  "nhom": "1. Xác thực và phân quyền",
+  "mo_ta": "Quên mật khẩu → OTP → đặt lại → đăng nhập mật khẩu mới",
+  "dat": true,
+  "ghi_chu": "đặt lại 200 {'ok': True}"
+ },
+ {
+  "ma": "XT13",
+  "nhom": "1. Xác thực và phân quyền",
+  "mo_ta": "Đổi mật khẩu, đăng xuất làm token hết hiệu lực",
+  "dat": true,
+  "ghi_chu": "đổi 200, đăng xuất 200, token cũ 401"
+ },
+ {
+  "ma": "XT14",
+  "nhom": "1. Xác thực và phân quyền",
+  "mo_ta": "Nhân viên mới phải đổi mật khẩu tạm trước khi dùng chức năng",
+  "dat": true,
+  "ghi_chu": "403 Vui lòng đổi mật khẩu tạm thời trước khi sử dụng hệ thống"
+ },
+ {
+  "ma": "DL01",
+  "nhom": "2. Đặt lịch khám (bệnh nhân)",
+  "mo_ta": "Xem bác sĩ, ngày còn trống, khung giờ theo chuyên khoa",
+  "dat": true,
+  "ghi_chu": "19 ngày trống; lấy 8 khung ở 8 ngày khác nhau"
+ },
+ {
+  "ma": "DL02",
+  "nhom": "2. Đặt lịch khám (bệnh nhân)",
+  "mo_ta": "Đặt lịch → trạng thái Chờ xác nhận, hiện trong Lịch hẹn của tôi",
+  "dat": true,
+  "ghi_chu": "200 → CHO_XAC_NHAN"
+ },
+ {
+  "ma": "DL03",
+  "nhom": "2. Đặt lịch khám (bệnh nhân)",
+  "mo_ta": "Người khác đặt trùng khung giờ bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Khung giờ không còn trống"
+ },
+ {
+  "ma": "DL04",
+  "nhom": "2. Đặt lịch khám (bệnh nhân)",
+  "mo_ta": "Tối đa 3 lịch chưa hoàn thành (BR03)",
+  "dat": true,
+  "ghi_chu": "2 lịch thêm [200, 200]; lịch thứ 4: 400 Mỗi bệnh nhân có tối đa 3 lịch hẹn chưa hoàn thành"
+ },
+ {
+  "ma": "DL05",
+  "nhom": "2. Đặt lịch khám (bệnh nhân)",
+  "mo_ta": "Đổi lịch sang khung giờ khác",
+  "dat": true,
+  "ghi_chu": "200 {'ok': True}"
+ },
+ {
+  "ma": "DL06",
+  "nhom": "2. Đặt lịch khám (bệnh nhân)",
+  "mo_ta": "Hủy lịch (khi chưa duyệt / trong 15 phút)",
+  "dat": true,
+  "ghi_chu": "200 {'ok': True}"
+ },
+ {
+  "ma": "DL07",
+  "nhom": "2. Đặt lịch khám (bệnh nhân)",
+  "mo_ta": "Không cho vào danh sách chờ khi ngày còn khung trống (UC6.8)",
+  "dat": true,
+  "ghi_chu": "400 Ngày này vẫn còn khung giờ trống, vui lòng đặt lịch trực tiếp"
+ },
+ {
+  "ma": "LT01",
+  "nhom": "3. Lễ tân: lịch hẹn, tiếp đón",
+  "mo_ta": "Danh sách chờ duyệt và đếm trên menu",
+  "dat": true,
+  "ghi_chu": "13 lịch chờ, menu {'so_luong': 13}"
+ },
+ {
+  "ma": "LT02",
+  "nhom": "3. Lễ tân: lịch hẹn, tiếp đón",
+  "mo_ta": "Duyệt lịch hẹn",
+  "dat": true,
+  "ghi_chu": "200 {'ok': True}"
+ },
+ {
+  "ma": "LT03",
+  "nhom": "3. Lễ tân: lịch hẹn, tiếp đón",
+  "mo_ta": "Từ chối lịch phải có lý do",
+  "dat": true,
+  "ghi_chu": "400 Vui lòng nhập lý do"
+ },
+ {
+  "ma": "LT04",
+  "nhom": "3. Lễ tân: lịch hẹn, tiếp đón",
+  "mo_ta": "Tạo hồ sơ bệnh nhân chưa có tài khoản, tìm theo SĐT",
+  "dat": true,
+  "ghi_chu": "200 {'ma_bn': 61}; tìm thấy 1"
+ },
+ {
+  "ma": "LT05",
+  "nhom": "3. Lễ tân: lịch hẹn, tiếp đón",
+  "mo_ta": "Đặt lịch hộ qua điện thoại → xác nhận ngay (BR23)",
+  "dat": true,
+  "ghi_chu": "200 → DA_XAC_NHAN"
+ },
+ {
+  "ma": "LT06",
+  "nhom": "3. Lễ tân: lịch hẹn, tiếp đón",
+  "mo_ta": "Xếp bệnh nhân vãng lai vào khung giờ hôm nay",
+  "dat": true,
+  "ghi_chu": "200 → lượt 150, 16:00 với BS. Nguyễn Hoàng Nam"
+ },
+ {
+  "ma": "LT06b",
+  "nhom": "3. Lễ tân: lịch hẹn, tiếp đón",
+  "mo_ta": "Check-in, cấp số thứ tự, vào hàng chờ bác sĩ",
+  "dat": true,
+  "ghi_chu": "STT 4, BHYT KHONG_CO"
+ },
+ {
+  "ma": "LT07",
+  "nhom": "3. Lễ tân: lịch hẹn, tiếp đón",
+  "mo_ta": "Check-in lại lần hai bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Lịch hẹn chưa được xác nhận hoặc đã chuyển trạng thái"
+ },
+ {
+  "ma": "LT08",
+  "nhom": "3. Lễ tân: lịch hẹn, tiếp đón",
+  "mo_ta": "Check-in lịch ngày khác bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Lịch hẹn vào ngày 04/11/2026, không thể check-in hôm nay"
+ },
+ {
+  "ma": "KB01",
+  "nhom": "4. Bác sĩ khám bệnh",
+  "mo_ta": "Hàng chờ hôm nay có bệnh nhân vừa check-in",
+  "dat": true,
+  "ghi_chu": "1 người trong hàng chờ"
+ },
+ {
+  "ma": "KB02",
+  "nhom": "4. Bác sĩ khám bệnh",
+  "mo_ta": "Bác sĩ khác không mở được lượt khám",
+  "dat": true,
+  "ghi_chu": "403 Bạn không phải bác sĩ điều trị của lượt khám này"
+ },
+ {
+  "ma": "KB03",
+  "nhom": "4. Bác sĩ khám bệnh",
+  "mo_ta": "Gọi bệnh nhân vào khám",
+  "dat": true,
+  "ghi_chu": "200 {'ok': True}"
+ },
+ {
+  "ma": "KB04",
+  "nhom": "4. Bác sĩ khám bệnh",
+  "mo_ta": "Huyết áp sai định dạng bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Huyết áp ghi dạng tâm thu/tâm trương, VD 120/80"
+ },
+ {
+  "ma": "KB05",
+  "nhom": "4. Bác sĩ khám bệnh",
+  "mo_ta": "Lưu tạm hồ sơ, chẩn đoán ICD, kê đơn",
+  "dat": true,
+  "ghi_chu": "200 {'ok': True}"
+ },
+ {
+  "ma": "KB06",
+  "nhom": "4. Bác sĩ khám bệnh",
+  "mo_ta": "Chỉ định 4 dịch vụ CLS (XN, X-quang, nội soi)",
+  "dat": true,
+  "ghi_chu": "200 {'ma_pcd': [59, 60, 61, 62]}"
+ },
+ {
+  "ma": "KB07",
+  "nhom": "4. Bác sĩ khám bệnh",
+  "mo_ta": "Hoàn tất bị chặn khi còn phiếu CLS chưa có kết quả",
+  "dat": true,
+  "ghi_chu": "400 Chỉ hoàn tất khi bệnh nhân đang được khám"
+ },
+ {
+  "ma": "TT01",
+  "nhom": "5. Thu tạm thu CLS",
+  "mo_ta": "Lượt khám xuất hiện trong danh sách chờ thu",
+  "dat": true,
+  "ghi_chu": "4 phiếu, phải thu 905000"
+ },
+ {
+  "ma": "TT02",
+  "nhom": "5. Thu tạm thu CLS",
+  "mo_ta": "Tiền khách đưa thiếu bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Tiền khách đưa chưa đủ 905.000 đ"
+ },
+ {
+  "ma": "TT03",
+  "nhom": "5. Thu tạm thu CLS",
+  "mo_ta": "Thu chuyển khoản → lập biên lai",
+  "dat": true,
+  "ghi_chu": "200 biên lai BL2610270021 905000"
+ },
+ {
+  "ma": "TT04",
+  "nhom": "5. Thu tạm thu CLS",
+  "mo_ta": "Thu lại phiếu đã thu bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Có phiếu đã được thu, đã hủy hoặc không thuộc lượt khám này, vui lòng tải lại"
+ },
+ {
+  "ma": "TT05",
+  "nhom": "5. Thu tạm thu CLS",
+  "mo_ta": "Biên lai trong ngày và chi tiết để in",
+  "dat": true,
+  "ghi_chu": "9 biên lai; chi tiết 4 phiếu"
+ },
+ {
+  "ma": "CLS01",
+  "nhom": "6. Cận lâm sàng",
+  "mo_ta": "Hàng chờ phòng xét nghiệm có 2 phiếu vừa thu",
+  "dat": true,
+  "ghi_chu": "phòng P103: 2 phiếu"
+ },
+ {
+  "ma": "CLS02",
+  "nhom": "6. Cận lâm sàng",
+  "mo_ta": "Nội soi bị chặn khi chưa làm đường huyết (BR18)",
+  "dat": true,
+  "ghi_chu": "400 Cần thực hiện Đường huyết lúc đói trước Nội soi dạ dày tá tràng"
+ },
+ {
+  "ma": "CLS03",
+  "nhom": "6. Cận lâm sàng",
+  "mo_ta": "Phòng khác không mở được phiếu (BR11)",
+  "dat": true,
+  "ghi_chu": "403 Phiếu thuộc phòng P104, không phải phòng bạn phụ trách"
+ },
+ {
+  "ma": "CLS04",
+  "nhom": "6. Cận lâm sàng",
+  "mo_ta": "Xét nghiệm: bắt đầu và trả kết quả chỉ số",
+  "dat": true,
+  "ghi_chu": "[200, 200, 200, 200]"
+ },
+ {
+  "ma": "CLS05",
+  "nhom": "6. Cận lâm sàng",
+  "mo_ta": "Thiếu kết luận CĐHA bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Vui lòng nhập kết luận"
+ },
+ {
+  "ma": "CLS06a",
+  "nhom": "6. Cận lâm sàng",
+  "mo_ta": "X-quang chưa có ảnh thì không trả được kết quả (UC9.3 4a)",
+  "dat": true,
+  "ghi_chu": "400 Tải lên ít nhất một ảnh chụp trước khi trả kết quả"
+ },
+ {
+  "ma": "CLS06",
+  "nhom": "6. Cận lâm sàng",
+  "mo_ta": "X-quang: tải ảnh khi đang chụp, chặn tệp giả, rồi trả kết quả",
+  "dat": true,
+  "ghi_chu": "ảnh 200, tệp giả 400, trả kết quả 200"
+ },
+ {
+  "ma": "CLS06b",
+  "nhom": "6. Cận lâm sàng",
+  "mo_ta": "Ảnh kết quả chỉ mở được bằng đường dẫn có chữ ký",
+  "dat": true,
+  "ghi_chu": "có chữ ký 200 ảnh PNG: True; chữ ký sai 403; đường dẫn trực tiếp 404"
+ },
+ {
+  "ma": "CLS07",
+  "nhom": "6. Cận lâm sàng",
+  "mo_ta": "Nội soi: bắt buộc cam kết, ghi sinh thiết",
+  "dat": true,
+  "ghi_chu": "bắt đầu 200; thiếu cam kết: 400 Bệnh nhân phải ký cam kết đồng ý trước khi nội soi; trả 200"
+ },
+ {
+  "ma": "CLS07b",
+  "nhom": "6. Cận lâm sàng",
+  "mo_ta": "Bác sĩ chỉ định thấy ảnh kết quả và nhận thông báo từng kết quả",
+  "dat": true,
+  "ghi_chu": "phiếu có ảnh: 2"
+ },
+ {
+  "ma": "CLS08",
+  "nhom": "6. Cận lâm sàng",
+  "mo_ta": "Đủ kết quả → lượt khám về hàng chờ bác sĩ (Đã có kết quả)",
+  "dat": true,
+  "ghi_chu": "DA_CO_KET_QUA"
+ },
+ {
+  "ma": "CLS09",
+  "nhom": "6. Cận lâm sàng",
+  "mo_ta": "Điều chỉnh kết quả lưu bản cũ (UC14.7)",
+  "dat": true,
+  "ghi_chu": "200, bản 2"
+ },
+ {
+  "ma": "KB08",
+  "nhom": "4. Bác sĩ khám bệnh",
+  "mo_ta": "Gọi lại đọc kết quả rồi hoàn tất khám",
+  "dat": true,
+  "ghi_chu": "gọi lại 200, hoàn tất 200 {'ok': True}"
+ },
+ {
+  "ma": "KB09",
+  "nhom": "4. Bác sĩ khám bệnh",
+  "mo_ta": "Sửa hồ sơ sau khi hoàn tất bị chặn (BR06)",
+  "dat": true,
+  "ghi_chu": "400 Chỉ ghi hồ sơ khi bệnh nhân đang được khám"
+ },
+ {
+  "ma": "KB10",
+  "nhom": "4. Bác sĩ khám bệnh",
+  "mo_ta": "Bổ sung ghi chú sau hoàn tất",
+  "dat": true,
+  "ghi_chu": "200"
+ },
+ {
+  "ma": "KB11",
+  "nhom": "4. Bác sĩ khám bệnh",
+  "mo_ta": "Kết quả CLS không sửa được sau khi hoàn tất",
+  "dat": true,
+  "ghi_chu": "400 Lượt khám đã hoàn tất, không được điều chỉnh kết quả"
+ },
+ {
+  "ma": "KB12",
+  "nhom": "4. Bác sĩ khám bệnh",
+  "mo_ta": "Bệnh nhân xem hồ sơ sức khỏe có kết quả CLS và ảnh",
+  "dat": true,
+  "ghi_chu": "1 lần khám; chi tiết có ảnh: True"
+ },
+ {
+  "ma": "LV01",
+  "nhom": "7. Lịch làm việc",
+  "mo_ta": "Bác sĩ đăng ký ca, quản trị thấy chờ duyệt",
+  "dat": true,
+  "ghi_chu": "200 {'ma_dk': 24}; quản trị thấy trong danh sách chờ duyệt: True"
+ },
+ {
+  "ma": "LV02",
+  "nhom": "7. Lịch làm việc",
+  "mo_ta": "Duyệt đăng ký → tạo ca và khung giờ",
+  "dat": true,
+  "ghi_chu": "200 {'ma_ca': 615}; ca 615"
+ },
+ {
+  "ma": "LV03",
+  "nhom": "7. Lịch làm việc",
+  "mo_ta": "Bác sĩ khóa / mở khung giờ của mình",
+  "dat": true,
+  "ghi_chu": "khóa 200, mở 200"
+ },
+ {
+  "ma": "LV04",
+  "nhom": "7. Lịch làm việc",
+  "mo_ta": "Hủy ca (bác sĩ nghỉ)",
+  "dat": true,
+  "ghi_chu": "200 {'so_lich_huy': 0, 'da_xoa': True}"
+ },
+ {
+  "ma": "QT01",
+  "nhom": "8. Quản trị tài khoản, phân quyền, nhật ký",
+  "mo_ta": "Tạo tài khoản nhân viên, cấp mật khẩu tạm",
+  "dat": true,
+  "ghi_chu": "200, có mật khẩu tạm: True"
+ },
+ {
+  "ma": "QT02",
+  "nhom": "8. Quản trị tài khoản, phân quyền, nhật ký",
+  "mo_ta": "Khóa / mở khóa tài khoản",
+  "dat": true,
+  "ghi_chu": "khóa 200, mở 200"
+ },
+ {
+  "ma": "QT03",
+  "nhom": "8. Quản trị tài khoản, phân quyền, nhật ký",
+  "mo_ta": "Cấp lại mật khẩu",
+  "dat": true,
+  "ghi_chu": "200"
+ },
+ {
+  "ma": "QT04",
+  "nhom": "8. Quản trị tài khoản, phân quyền, nhật ký",
+  "mo_ta": "Xóa tài khoản chưa phát sinh dữ liệu",
+  "dat": true,
+  "ghi_chu": "200 {'ok': True}"
+ },
+ {
+  "ma": "QT05",
+  "nhom": "8. Quản trị tài khoản, phân quyền, nhật ký",
+  "mo_ta": "Không xóa được tài khoản đã có dữ liệu nghiệp vụ",
+  "dat": true,
+  "ghi_chu": "400 Tài khoản đã phát sinh dữ liệu (lịch hẹn, hồ sơ, ca làm việc...) nên không thể xóa. Hãy khóa tài khoản để giữ lịch sử"
+ },
+ {
+  "ma": "QT06",
+  "nhom": "8. Quản trị tài khoản, phân quyền, nhật ký",
+  "mo_ta": "Bảng phân quyền",
+  "dat": true,
+  "ghi_chu": "200"
+ },
+ {
+  "ma": "QT07",
+  "nhom": "8. Quản trị tài khoản, phân quyền, nhật ký",
+  "mo_ta": "Nhật ký thao tác ghi các thao tác vừa test",
+  "dat": true,
+  "ghi_chu": "450 dòng"
+ },
+ {
+  "ma": "QT08",
+  "nhom": "8. Quản trị tài khoản, phân quyền, nhật ký",
+  "mo_ta": "Nhật ký truy cập hồ sơ bệnh án",
+  "dat": true,
+  "ghi_chu": "107 dòng"
+ },
+ {
+  "ma": "QT09",
+  "nhom": "8. Quản trị tài khoản, phân quyền, nhật ký",
+  "mo_ta": "Quản trị xem lịch hẹn / lịch khám ở chế độ giám sát",
+  "dat": true,
+  "ghi_chu": "19 lịch hẹn, 14 lịch khám"
+ },
+ {
+  "ma": "QT10",
+  "nhom": "8. Quản trị tài khoản, phân quyền, nhật ký",
+  "mo_ta": "Quản trị không thao tác thay lễ tân (duyệt lịch)",
+  "dat": true,
+  "ghi_chu": "403 Bạn không có quyền thực hiện chức năng này"
+ },
+ {
+  "ma": "DM01",
+  "nhom": "9. Danh mục và sơ đồ mặt bằng",
+  "mo_ta": "Thêm / ngừng / xóa chuyên khoa chưa dùng",
+  "dat": true,
+  "ghi_chu": "thêm 200, ngừng 200, xóa 200, còn trong danh sách: False"
+ },
+ {
+  "ma": "DM01b",
+  "nhom": "9. Danh mục và sơ đồ mặt bằng",
+  "mo_ta": "Không xóa được chuyên khoa đã có bác sĩ, lịch hẹn",
+  "dat": true,
+  "ghi_chu": "400 Chuyên khoa đã có bác sĩ, phòng, lịch hẹn hoặc phiếu dịch vụ nên không thể xóa. Hãy ngừng chuyên khoa để giữ lịch sử"
+ },
+ {
+  "ma": "DM02",
+  "nhom": "9. Danh mục và sơ đồ mặt bằng",
+  "mo_ta": "Phí khám âm bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Phí khám phải là số không âm"
+ },
+ {
+  "ma": "DM03",
+  "nhom": "9. Danh mục và sơ đồ mặt bằng",
+  "mo_ta": "Thêm / xóa thuốc chưa kê; thuốc đã kê không xóa được",
+  "dat": true,
+  "ghi_chu": "thêm 200 {'ma_thuoc': 68}, xóa 200; xóa thuốc đã kê: 400 Thuốc đã được kê trong đơn nên không thể xóa. Hãy ngừng thuốc để giữ lịch sử"
+ },
+ {
+  "ma": "DM04",
+  "nhom": "9. Danh mục và sơ đồ mặt bằng",
+  "mo_ta": "Giá BHYT lớn hơn giá thuốc bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Giá BHYT từ 0 đến đơn giá (để trống nếu thuốc ngoài danh mục BHYT)"
+ },
+ {
+  "ma": "DM05",
+  "nhom": "9. Danh mục và sơ đồ mặt bằng",
+  "mo_ta": "Thêm / xóa mã ICD chưa dùng; mã đã dùng không xóa được",
+  "dat": true,
+  "ghi_chu": "thêm U99.36 200, xóa 200; xóa I10 đã dùng: 400"
+ },
+ {
+  "ma": "DM06",
+  "nhom": "9. Danh mục và sơ đồ mặt bằng",
+  "mo_ta": "Xem dịch vụ, mẫu chỉ số",
+  "dat": true,
+  "ghi_chu": "12 dịch vụ, CBC 5 chỉ số"
+ },
+ {
+  "ma": "DM07",
+  "nhom": "9. Danh mục và sơ đồ mặt bằng",
+  "mo_ta": "Chỉ đường từ sảnh tới phòng nội soi (tầng 2)",
+  "dat": true,
+  "ghi_chu": "{\"TongGiay\": 92, \"Diem\": [1, 2, 4, 5, 6, 13, 15, 16, 20], \"Doan\": [1, 3, 7, 11, 13, 16, 19"
+ },
+ {
+  "ma": "DM08",
+  "nhom": "9. Danh mục và sơ đồ mặt bằng",
+  "mo_ta": "Thông tin phòng khám",
+  "dat": true,
+  "ghi_chu": "Phòng khám Đa khoa Việt Bắc"
+ },
+ {
+  "ma": "HS01",
+  "nhom": "10. Hồ sơ cá nhân, thông báo",
+  "mo_ta": "Xem và cập nhật hồ sơ cá nhân",
+  "dat": true,
+  "ghi_chu": "200"
+ },
+ {
+  "ma": "HS02",
+  "nhom": "10. Hồ sơ cá nhân, thông báo",
+  "mo_ta": "Đổi ảnh đại diện",
+  "dat": true,
+  "ghi_chu": "200"
+ },
+ {
+  "ma": "HS03",
+  "nhom": "10. Hồ sơ cá nhân, thông báo",
+  "mo_ta": "Thông báo của bệnh nhân sau khi lịch được duyệt",
+  "dat": true,
+  "ghi_chu": "28 thông báo, 28 chưa đọc"
+ },
+ {
+  "ma": "HS04",
+  "nhom": "10. Hồ sơ cá nhân, thông báo",
+  "mo_ta": "Đánh dấu đọc hết",
+  "dat": true,
+  "ghi_chu": "còn 0"
+ },
+ {
+  "ma": "BH01",
+  "nhom": "12. Bảo hiểm y tế",
+  "mo_ta": "Số thẻ không đủ 15 ký tự bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Số thẻ BHYT gồm 15 ký tự (2 chữ + 1 số mức hưởng + 2 số mã tỉnh + 10 số mã BHXH)"
+ },
+ {
+  "ma": "BH02",
+  "nhom": "12. Bảo hiểm y tế",
+  "mo_ta": "Mã đối tượng không khớp mức hưởng (DN phải là mức 4) bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Đối tượng DN có mã mức hưởng 4, thẻ ghi 3. Kiểm tra lại số thẻ"
+ },
+ {
+  "ma": "BH03",
+  "nhom": "12. Bảo hiểm y tế",
+  "mo_ta": "Mã tỉnh 00 bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Ô 3 (mã tỉnh phát hành) phải là 2 số từ 01 đến 99"
+ },
+ {
+  "ma": "BH04",
+  "nhom": "12. Bảo hiểm y tế",
+  "mo_ta": "Giải mã 4 ô của thẻ hợp lệ chưa có trên cổng giả lập",
+  "dat": true,
+  "ghi_chu": "200 Hộ gia đình, mức 4 (80%), tỉnh 19, BHXH 1829389908"
+ },
+ {
+  "ma": "BH05",
+  "nhom": "12. Bảo hiểm y tế",
+  "mo_ta": "Lễ tân nhập thẻ cho bệnh nhân",
+  "dat": true,
+  "ghi_chu": "lưu 200 {'ma_the': 'GD4191829389908'}; có trên cổng: True"
+ },
+ {
+  "ma": "BH06",
+  "nhom": "12. Bảo hiểm y tế",
+  "mo_ta": "Mã số BHXH đã gắn với bệnh nhân khác bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Mã số BHXH 0123456789 đã gắn với hồ sơ Hoàng Văn An. Kiểm tra lại số thẻ"
+ },
+ {
+  "ma": "BH07",
+  "nhom": "12. Bảo hiểm y tế",
+  "mo_ta": "Giấy miễn cùng chi trả với thẻ mức 1 (đã 100%) bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Thẻ mức hưởng 1 đã được trả 100%, không cần giấy miễn cùng chi trả"
+ },
+ {
+  "ma": "BH08",
+  "nhom": "12. Bảo hiểm y tế",
+  "mo_ta": "Bệnh nhân xem thẻ trong hồ sơ cá nhân",
+  "dat": true,
+  "ghi_chu": "1 thẻ"
+ },
+ {
+  "ma": "BH09",
+  "nhom": "12. Bảo hiểm y tế",
+  "mo_ta": "Check-in có thẻ mức 4; chi phí dưới 15% lương cơ sở thì BHYT trả 100%",
+  "dat": true,
+  "ghi_chu": "check-in HOP_LE 80%; khám BHYT trả 36500/36500; Chi phí trong phạm vi BHYT 186.500 đ dưới 15% lương cơ sở (379.500 đ): quỹ BHYT trả 100%"
+ },
+ {
+  "ma": "BH10",
+  "nhom": "12. Bảo hiểm y tế",
+  "mo_ta": "Chi phí vượt ngưỡng: BHYT trả 80% theo mức hưởng",
+  "dat": true,
+  "ghi_chu": "khám BHYT trả 29200 (mong 29200); tổng BHYT 365200/735000; ngưỡng 379500"
+ },
+ {
+  "ma": "NT01",
+  "nhom": "13. Người thân, biểu đồ chỉ số",
+  "mo_ta": "Thêm người thân chưa có hồ sơ (trẻ không SĐT) → tạo hồ sơ, liên kết ngay",
+  "dat": true,
+  "ghi_chu": "200 {'ma_bn': 62, 'trang_thai': 'DA_LIEN_KET'}; 1 người thân"
+ },
+ {
+  "ma": "NT02",
+  "nhom": "13. Người thân, biểu đồ chỉ số",
+  "mo_ta": "Hồ sơ đã có tại phòng khám (trùng SĐT + ngày sinh) → chờ OTP gửi tới SĐT của hồ sơ",
+  "dat": true,
+  "ghi_chu": "200 CHO_OTP, gửi tới *******891; OTP thử: có"
+ },
+ {
+  "ma": "NT03",
+  "nhom": "13. Người thân, biểu đồ chỉ số",
+  "mo_ta": "Đặt lịch cho hồ sơ chưa xác thực OTP bị chặn",
+  "dat": true,
+  "ghi_chu": "404 Không tìm thấy hồ sơ người khám"
+ },
+ {
+  "ma": "NT04",
+  "nhom": "13. Người thân, biểu đồ chỉ số",
+  "mo_ta": "Sai mã OTP bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Mã OTP không đúng, còn 4 lần thử"
+ },
+ {
+  "ma": "NT05",
+  "nhom": "13. Người thân, biểu đồ chỉ số",
+  "mo_ta": "Nhập đúng OTP → liên kết hồ sơ cùng lịch sử khám",
+  "dat": true,
+  "ghi_chu": "200 {'ok': True}"
+ },
+ {
+  "ma": "NT06",
+  "nhom": "13. Người thân, biểu đồ chỉ số",
+  "mo_ta": "Đặt lịch cho người thân; lịch hiện trong Lịch hẹn của tôi",
+  "dat": true,
+  "ghi_chu": "200 {'ma_lk': 153}; lịch hiện trong Lịch hẹn của tôi với người khám Nguyễn Bé Kiểm Thử"
+ },
+ {
+  "ma": "NT07",
+  "nhom": "13. Người thân, biểu đồ chỉ số",
+  "mo_ta": "Đặt lịch cho hồ sơ không thuộc tài khoản bị chặn",
+  "dat": true,
+  "ghi_chu": "404 Không tìm thấy hồ sơ người khám"
+ },
+ {
+  "ma": "NT08",
+  "nhom": "13. Người thân, biểu đồ chỉ số",
+  "mo_ta": "Xem hồ sơ sức khỏe của người thân; người khác không xem được",
+  "dat": true,
+  "ghi_chu": "người thân 200, người lạ 404"
+ },
+ {
+  "ma": "NT09",
+  "nhom": "13. Người thân, biểu đồ chỉ số",
+  "mo_ta": "Hủy liên kết khi người thân còn lịch hẹn chưa diễn ra bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Nguyễn Bé Kiểm Thử còn 1 lịch hẹn chưa diễn ra, hãy hủy các lịch đó trước"
+ },
+ {
+  "ma": "NT10",
+  "nhom": "13. Người thân, biểu đồ chỉ số",
+  "mo_ta": "Hủy lịch rồi hủy liên kết; hồ sơ không còn trong tài khoản",
+  "dat": true,
+  "ghi_chu": "hủy lịch 200, hủy liên kết con 200; còn 1 người thân"
+ },
+ {
+  "ma": "CS01",
+  "nhom": "13. Người thân, biểu đồ chỉ số",
+  "mo_ta": "Dãy chỉ số theo lần khám: huyết áp 2 đường, xét nghiệm kèm khoảng tham chiếu",
+  "dat": true,
+  "ghi_chu": "200: 11 dãy (Huyết áp, Mạch, Nhiệt độ, Cân nặng, Chỉ số khối cơ thể (BMI), Glucose lúc đói…); huyết áp 1 điểm"
+ },
+ {
+  "ma": "TD01",
+  "nhom": "14. Đánh giá tự do",
+  "mo_ta": "Biểu mẫu đánh giá tự do: 6 tiêu chí, danh sách lễ tân và bác sĩ",
+  "dat": true,
+  "ghi_chu": "200: 22 nhân viên, nhóm ['BAC_SI', 'BS_CDHA', 'BS_NOI_SOI', 'BS_XET_NGHIEM', 'LE_TAN'], bác sĩ thuộc 5 chuyên khoa"
+ },
+ {
+  "ma": "TD02",
+  "nhom": "14. Đánh giá tự do",
+  "mo_ta": "Gửi trống bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Hãy chấm ít nhất một mục, một nhân viên hoặc viết góp ý"
+ },
+ {
+  "ma": "TD03",
+  "nhom": "14. Đánh giá tự do",
+  "mo_ta": "Gửi đánh giá không cần đã khám: cơ sở vật chất, 1 lễ tân, 1 bác sĩ, góp ý",
+  "dat": true,
+  "ghi_chu": "200 {'ma_dg': 20}; đã gửi: TU_DO, chấm 2 nhân viên (không cần chấm hết)"
+ },
+ {
+  "ma": "TD04",
+  "nhom": "14. Đánh giá tự do",
+  "mo_ta": "Gửi lần 2 trong 24 giờ bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Bạn đã gửi đánh giá trong 24 giờ qua, vui lòng gửi lại sau"
+ },
+ {
+  "ma": "TD05",
+  "nhom": "14. Đánh giá tự do",
+  "mo_ta": "Báo cáo đánh giá có điểm của lễ tân",
+  "dat": true,
+  "ghi_chu": "4 nhân viên trong xếp hạng"
+ },
+ {
+  "ma": "DG01",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Lượt chưa thanh toán chưa đánh giá được (BR24)",
+  "dat": true,
+  "ghi_chu": "200 Chỉ đánh giá được lượt khám đã hoàn tất và thanh toán"
+ },
+ {
+  "ma": "DG02",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Thanh toán xong → lượt vào danh sách chờ đánh giá",
+  "dat": true,
+  "ghi_chu": "thu 200; 1 lượt chờ đánh giá"
+ },
+ {
+  "ma": "DG03",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Thiếu điểm bác sĩ bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Vui lòng chấm điểm bác sĩ"
+ },
+ {
+  "ma": "DG05",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Điểm ngoài 1–5 bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Điểm bác sĩ phải từ 1 đến 5 sao"
+ },
+ {
+  "ma": "DG06",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Gửi đánh giá kèm ảnh, bỏ qua tiêu chí CLS",
+  "dat": true,
+  "ghi_chu": "200 → MaDG 21, 1 ảnh, CLS bỏ qua"
+ },
+ {
+  "ma": "DG07",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Đánh giá lần hai bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Lượt khám này đã được đánh giá"
+ },
+ {
+  "ma": "DG08",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Bệnh nhân khác không mở được lượt khám",
+  "dat": true,
+  "ghi_chu": "404 Không tìm thấy lượt khám"
+ },
+ {
+  "ma": "DG09",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Phân tích cảm xúc, chủ đề (UC15.8)",
+  "dat": true,
+  "ghi_chu": "phân tích 2; TICH_CUC ['THOI_GIAN_CHO', 'THAI_DO', 'CHUYEN_MON', 'THU_TUC'] THAP"
+ },
+ {
+  "ma": "DG10",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Báo cáo đánh giá (UC13.3)",
+  "dat": true,
+  "ghi_chu": "21 đánh giá, bác sĩ 4.65★, 5 chủ đề, tổng hợp: True"
+ },
+ {
+  "ma": "DG11",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Lễ tân không xem được báo cáo đánh giá",
+  "dat": true,
+  "ghi_chu": "403 Bạn không có quyền thực hiện chức năng này"
+ },
+ {
+  "ma": "GY01",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Góp ý nội dung trống bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Vui lòng nhập nội dung"
+ },
+ {
+  "ma": "GY02",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Gửi khiếu nại kèm lượt khám, ảnh; hạn phản hồi 48 giờ (BR25)",
+  "dat": true,
+  "ghi_chu": "200 GY2610270015, hạn sau 48 giờ"
+ },
+ {
+  "ma": "GY03",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Gắn lượt khám của người khác bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Lượt khám liên quan không thuộc hồ sơ của bạn"
+ },
+ {
+  "ma": "GY04",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Quản trị thấy phiếu mới, số chờ xử lý",
+  "dat": true,
+  "ghi_chu": "3 phiếu cần xử lý, 2 quá hạn"
+ },
+ {
+  "ma": "GY05",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Ghi chú nội bộ ẩn với bệnh nhân",
+  "dat": true,
+  "ghi_chu": "bệnh nhân thấy 0, quản trị thấy 1 trao đổi"
+ },
+ {
+  "ma": "GY06",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Phản hồi trống bị chặn; phản hồi → Đã phản hồi",
+  "dat": true,
+  "ghi_chu": "trống 400, tiếp nhận 200, phản hồi 200 → DA_PHAN_HOI"
+ },
+ {
+  "ma": "GY07",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Bổ sung → Đang xử lý; xác nhận hài lòng → Đã đóng",
+  "dat": true,
+  "ghi_chu": "bổ sung → DANG_XU_LY; hài lòng → DA_DONG"
+ },
+ {
+  "ma": "GY08",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Bổ sung vào phiếu đã đóng bị chặn",
+  "dat": true,
+  "ghi_chu": "400 Phiếu đã đóng, vui lòng gửi phiếu mới"
+ },
+ {
+  "ma": "GY09",
+  "nhom": "11. Đánh giá, góp ý",
+  "mo_ta": "Bệnh nhân không vào được trang xử lý góp ý",
+  "dat": true,
+  "ghi_chu": "403 Bạn không có quyền thực hiện chức năng này"
+ }
+]

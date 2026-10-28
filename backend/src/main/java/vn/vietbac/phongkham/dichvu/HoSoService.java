@@ -34,14 +34,16 @@ public class HoSoService {
     private final BenhNhanRepository benhNhanRepo;
     private final NhanVienRepository nhanVienRepo;
     private final NhatKyService nhatKy;
+    private final TiepDonService tiepDon;
 
-    public HoSoService(TruyVan tv, DongHo dongHo, LuuAnh luuAnh, BenhNhanRepository benhNhanRepo, NhanVienRepository nhanVienRepo, NhatKyService nhatKy) {
+    public HoSoService(TruyVan tv, DongHo dongHo, LuuAnh luuAnh, BenhNhanRepository benhNhanRepo, NhanVienRepository nhanVienRepo, NhatKyService nhatKy, TiepDonService tiepDon) {
         this.tv = tv;
         this.dongHo = dongHo;
         this.luuAnh = luuAnh;
         this.benhNhanRepo = benhNhanRepo;
         this.nhanVienRepo = nhanVienRepo;
         this.nhatKy = nhatKy;
+        this.tiepDon = tiepDon;
     }
 
     /** Thông tin sửa được; trường không thuộc vai trò (VD GioiThieu với bệnh nhân) bị bỏ qua. */
@@ -52,12 +54,15 @@ public class HoSoService {
     @Transactional(readOnly = true)
     public Map<String, Object> xem(NguoiDung nd) {
         if (nd.maBN() != null) {
-            return tv.mot("""
+            Map<String, Object> bn = tv.mot("""
                     SELECT bn.MaBN, bn.HoTen, bn.NgaySinh, bn.GioiTinh, bn.CCCD, bn.DiaChi, bn.AnhDaiDien,
                            bn.NguoiLienHe, bn.SDTNguoiLienHe, bn.DiUng, bn.NgayTao,
                            tk.Email, tk.SDT, tk.LanDangNhapCuoi, vt.TenVaiTro
                     FROM BenhNhan bn JOIN TaiKhoan tk ON tk.MaTK = bn.MaTK JOIN VaiTro vt ON vt.MaVaiTro = tk.MaVaiTro
                     WHERE bn.MaBN = ?""", nd.maBN());
+            // Thẻ BHYT do lễ tân nhập lúc đăng ký; bệnh nhân chỉ xem
+            bn.put("TheBHYT", tiepDon.theBhyt(nd.maBN()));
+            return bn;
         }
         if (nd.maNV() != null) {
             return tv.mot("""

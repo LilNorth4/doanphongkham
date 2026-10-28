@@ -1,14 +1,16 @@
 import { MessageOutlined, PhoneOutlined, SearchOutlined, ShopOutlined, UserAddOutlined } from '@ant-design/icons'
 import {
-  Alert, App, Button, Card, Col, DatePicker, Descriptions, Empty, Flex, Form, Input, Radio, Result, Row, Segmented,
+  Alert, App, Button, Card, Col, Descriptions, Empty, Flex, Form, Input, Radio, Result, Row, Segmented,
   Select, Space, Steps, Tag, Typography, theme,
 } from 'antd'
+import ONhapNgay from '@/components/ONhapNgay'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useKieuBuoc } from '@/hooks/manHinh'
 import { api, LoiApi, type BacSi, type BenhNhan, type ChuyenKhoa, type KhungGio } from '@/lib/api'
 import ChonKhungGio from '@/components/ChonKhungGio'
+import { CacTruongThe, NutTheBhyt, theGuiApi, type GiaTriThe } from '@/components/TheBhyt'
 import { chuanHoaSdt, quyTac, thuNgay, tuoi } from '@/lib/hangSo'
 
 type Kenh = 'DIEN_THOAI' | 'TIN_NHAN' | 'TAI_QUAY'
@@ -27,6 +29,8 @@ interface HoSoMoi {
   dia_chi?: string
   nguoi_lien_he?: string
   sdt_nguoi_lien_he?: string
+  /** Lễ tân nhập thẻ BHYT ngay lúc đăng ký hồ sơ (không bắt buộc) */
+  the_bhyt?: GiaTriThe
 }
 
 /** UC7.7 vãng lai, UC7.8 tìm/tạo hồ sơ, UC7.13 điện thoại, UC7.14 tin nhắn: lễ tân đặt lịch hộ, xác nhận ngay (BR23). */
@@ -85,9 +89,10 @@ export default function DatLichHo() {
         ho_ten: v.ho_ten.trim(), sdt: chuanHoaSdt(v.sdt), ngay_sinh: v.ngay_sinh?.format('YYYY-MM-DD'),
         gioi_tinh: v.gioi_tinh, cccd: v.cccd?.trim() || undefined, dia_chi: v.dia_chi?.trim() || undefined,
         nguoi_lien_he: v.nguoi_lien_he?.trim() || undefined, sdt_nguoi_lien_he: v.sdt_nguoi_lien_he?.trim() || undefined,
+        the_bhyt: theGuiApi(v.the_bhyt),
       }
       const { ma_bn } = await api.themBenhNhan(b)
-      message.success('Đã tạo hồ sơ bệnh nhân')
+      message.success(b.the_bhyt ? 'Đã tạo hồ sơ bệnh nhân và lưu thẻ BHYT' : 'Đã tạo hồ sơ bệnh nhân')
       setBn({ MaBN: ma_bn, MaTK: null, HoTen: b.ho_ten, NgaySinh: b.ngay_sinh ?? null, GioiTinh: b.gioi_tinh ?? null,
         SDT: b.sdt, CCCD: b.cccd ?? null, Email: null, DiaChi: b.dia_chi ?? null, NguoiLienHe: b.nguoi_lien_he ?? null,
         SDTNguoiLienHe: b.sdt_nguoi_lien_he ?? null, DiUng: null })
@@ -173,7 +178,10 @@ export default function DatLichHo() {
                       </Typography.Text></div>
                       {b.NguoiLienHe && <Typography.Text type="secondary">Liên hệ: {b.NguoiLienHe}</Typography.Text>}
                     </div>
-                    <Button type="primary" size="small">Chọn</Button>
+                    <Space direction="vertical" size={4} align="end">
+                      <Button type="primary" size="small">Chọn</Button>
+                      <NutTheBhyt maBn={b.MaBN} hoTen={b.HoTen} />
+                    </Space>
                   </Flex>
                 </Card>
               ))}
@@ -206,7 +214,7 @@ export default function DatLichHo() {
                     </Col>
                     <Col xs={24} sm={12}>
                       <Form.Item name="ngay_sinh" label="Ngày sinh">
-                        <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} disabledDate={(d) => d.isAfter(dayjs())} />
+                        <ONhapNgay style={{ width: '100%' }} disabledDate={(d) => d.isAfter(dayjs())} />
                       </Form.Item>
                     </Col>
                     <Col xs={24} sm={12}>
@@ -226,6 +234,8 @@ export default function DatLichHo() {
                       <Form.Item name="sdt_nguoi_lien_he" label="SĐT người liên hệ" rules={[quyTac.sdt]}><Input /></Form.Item>
                     </Col>
                   </Row>
+                  <Typography.Title level={5} style={{ marginTop: 4 }}>Thẻ bảo hiểm y tế (nếu có)</Typography.Title>
+                  <CacTruongThe ten={['the_bhyt']} batBuoc={false} />
                   <Button type="primary" htmlType="submit" block loading={dangGui}>Tạo hồ sơ và tiếp tục</Button>
                 </Form>
               </Card>
@@ -238,7 +248,7 @@ export default function DatLichHo() {
         <>
           <Alert type="info" style={{ marginBottom: 16 }}
             title={<>Bệnh nhân: <b>{bn.HoTen}</b> · {bn.SDT}</>}
-            action={<Button size="small" onClick={() => setBuoc(0)}>Đổi</Button>} />
+            action={<Space><NutTheBhyt maBn={bn.MaBN} hoTen={bn.HoTen} /><Button size="small" onClick={() => setBuoc(0)}>Đổi</Button></Space>} />
           <Typography.Text strong>Kênh đặt lịch</Typography.Text>
           <Row gutter={[12, 12]} style={{ margin: '8px 0 16px' }}>
             {KENH.map((k) => (

@@ -1,7 +1,6 @@
 package vn.vietbac.phongkham.dichvu;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -15,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.extern.slf4j.Slf4j;
+import vn.vietbac.phongkham.chung.BaoHiemYTe;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
@@ -71,12 +71,18 @@ public class HoaDonService {
             return co;
         }
         Map<String, Object> lk = tv.mot("""
-                SELECT lk.MaLK, lk.MaLichHen, lk.MaBN, lk.TrangThai, lk.TrangThaiBHYT, lk.MucHuong, bs.MaCK
+                SELECT lk.MaLK, lk.MaLichHen, lk.MaBN, lk.NgayKham, lk.TrangThai, lk.TrangThaiBHYT, lk.MucHuong,
+                       lk.MaMucHuong, lk.MienCungChiTra, bs.MaCK
                 FROM LuotKham lk JOIN NhanVien bs ON bs.MaNV = lk.MaBS WHERE lk.MaLK = ? FOR UPDATE""", maLK);
         if (lk == null || !"HOAN_THANH".equals(lk.get("TrangThai"))) {
             throw new LoiNghiepVu("Chỉ lập hóa đơn cho lượt khám đã hoàn tất");
         }
-        int muc = "HOP_LE".equals(lk.get("TrangThaiBHYT")) && lk.get("MucHuong") instanceof Number n ? n.intValue() : 0;
+        boolean coThe = "HOP_LE".equals(lk.get("TrangThaiBHYT"));
+        int muc = coThe && lk.get("MucHuong") instanceof Number n ? n.intValue() : 0;
+        // Lượt cũ trước khi có cột MaMucHuong: suy từ tỷ lệ (100% coi như mức 2, chỉ trả trong phạm vi)
+        Integer maMuc = !coThe ? null : lk.get("MaMucHuong") instanceof Number m ? m.intValue() : muc == 95 ? 3 : muc == 80 ? 4 : 2;
+        String ghiChuBhyt = Boolean.TRUE.equals(lk.get("MienCungChiTra"))
+                ? "Giấy miễn cùng chi trả trong năm: quỹ BHYT trả 100% trong phạm vi" : null;
         List<Object[]> dong = new ArrayList<>();      // LoaiMuc, NoiDung, SoLuong, Gia, GiaBHYT, BHYT trả, Đã tạm thu, MaPCD, MaThuoc
 
         Map<String, Object> kham = tv.mot("""
@@ -88,7 +94,7 @@ public class HoaDonService {
         }
         BigDecimal giaKham = (BigDecimal) kham.get("GiaDichVu");
         dong.add(new Object[] {"KHAM", kham.get("TenDV"), 1, giaKham, kham.get("GiaBHYT"),
-                bhyt((BigDecimal) kham.get("GiaBHYT"), 1, muc, giaKham), false, null, null});
+                BaoHiemYTe.chiTra(maMuc, muc, (BigDecimal) kham.get("GiaBHYT"), 1, giaKham), false, null, null});
 
         for (Map<String, Object> p : tv.ds("""
                 SELECT p.MaPCD, dv.TenDV, p.GiaDichVu, p.GiaBHYT, p.BHYTChiTra, p.MaBL FROM PhieuChiDinh p
@@ -106,25 +112,43 @@ public class HoaDonService {
             int sl = ((Number) t.get("SoLuong")).intValue();
             BigDecimal gia = (BigDecimal) t.get("DonGia");
             dong.add(new Object[] {"THUOC", t.get("Ten"), sl, gia, t.get("GiaBHYT"),
-                    bhyt((BigDecimal) t.get("GiaBHYT"), sl, muc, gia.multiply(BigDecimal.valueOf(sl))), false, null,
-                    t.get("MaThuoc")});
+                    BaoHiemYTe.chiTra(maMuc, muc, (BigDecimal) t.get("GiaBHYT"), sl, gia.multiply(BigDecimal.valueOf(sl))),
+                    false, null, t.get("MaThuoc")});
         }
 
-        BigDecimal tong = BigDecimal.ZERO, bhytTra = BigDecimal.ZERO, daTamThu = BigDecimal.ZERO;
+        // Tiền CLS đã tạm thu = phần bệnh nhân trả lúc thu (theo BHYT tính khi chỉ định), tính trước khi miễn cùng chi trả
+        BigDecimal tong = BigDecimal.ZERO, daTamThu = BigDecimal.ZERO, phamVi = BigDecimal.ZERO;
         for (Object[] d : dong) {
             BigDecimal thanhTien = ((BigDecimal) d[3]).multiply(BigDecimal.valueOf(((Number) d[2]).longValue()));
             tong = tong.add(thanhTien);
-            bhytTra = bhytTra.add((BigDecimal) d[5]);
             if (Boolean.TRUE.equals(d[6])) {
                 daTamThu = daTamThu.add(thanhTien.subtract((BigDecimal) d[5]));
             }
+            if (d[4] != null) {
+                phamVi = phamVi.add(((BigDecimal) d[4]).multiply(BigDecimal.valueOf(((Number) d[2]).longValue())).min(thanhTien));
+            }
+        }
+        // Mức 3, 4: chi phí một lần khám trong phạm vi BHYT dưới 15% lương cơ sở thì quỹ trả 100%
+        LocalDate ngayKham = (LocalDate) lk.get("NgayKham");
+        if (coThe && muc < 100 && BaoHiemYTe.coCungChiTra(maMuc) && phamVi.signum() > 0
+                && phamVi.compareTo(BaoHiemYTe.nguongMienCungChiTra(ngayKham)) < 0) {
+            for (Object[] d : dong) {
+                BigDecimal thanhTien = ((BigDecimal) d[3]).multiply(BigDecimal.valueOf(((Number) d[2]).longValue()));
+                d[5] = BaoHiemYTe.chiTra(maMuc, 100, (BigDecimal) d[4], ((Number) d[2]).intValue(), thanhTien);
+            }
+            ghiChuBhyt = "Chi phí trong phạm vi BHYT " + tien(phamVi) + " dưới 15% lương cơ sở ("
+                    + tien(BaoHiemYTe.nguongMienCungChiTra(ngayKham)) + "): quỹ BHYT trả 100%";
+        }
+        BigDecimal bhytTra = BigDecimal.ZERO;
+        for (Object[] d : dong) {
+            bhytTra = bhytTra.add((BigDecimal) d[5]);
         }
         LocalDateTime bayGio = dongHo.bayGio();
         tv.capNhat("""
-                INSERT INTO HoaDon (MaSoHoaDon, MaLK, NgayLap, TongTien, BHYTChiTra, DaTamThu, MaHDGoc)
-                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                INSERT INTO HoaDon (MaSoHoaDon, MaLK, NgayLap, TongTien, BHYTChiTra, DaTamThu, MaHDGoc, GhiChuBHYT)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 "T" + UUID.randomUUID().toString().replace("-", "").substring(0, 19), maLK, bayGio, tong, bhytTra, daTamThu,
-                maHDGoc);
+                maHDGoc, ghiChuBhyt);
         Integer maHD = ((Number) tv.giaTri("SELECT LAST_INSERT_ID()")).intValue();
         String maSo = "HD" + bayGio.format(DateTimeFormatter.ofPattern("yyMMdd")) + String.format("%04d", maHD % 10000);
         tv.capNhat("UPDATE HoaDon SET MaSoHoaDon = ? WHERE MaHD = ?", maSo, maHD);
@@ -138,6 +162,9 @@ public class HoaDonService {
         if (maHDGoc != null) {
             return maHD;
         }
+        if (conPhaiThu.signum() < 0) {
+            hoanTamThuThua(maLK, conPhaiThu.negate(), ghiChuBhyt);
+        }
         thongBao.benhNhan((Integer) lk.get("MaBN"), "HOA_DON", "Hóa đơn lượt khám " + lk.get("MaLichHen"),
                 conPhaiThu.signum() > 0
                         ? "Hóa đơn " + maSo + ": còn phải thanh toán " + tien(conPhaiThu)
@@ -147,13 +174,28 @@ public class HoaDonService {
         return maHD;
     }
 
-    /** BHYT chi trả một dòng = giá BHYT x số lượng x mức hưởng, không vượt thành tiền (BR09). */
-    private static BigDecimal bhyt(BigDecimal giaBhyt, int soLuong, int muc, BigDecimal thanhTien) {
-        if (giaBhyt == null || muc <= 0) {
-            return BigDecimal.ZERO;
+    /**
+     * Miễn cùng chi trả sau khi đã tạm thu CLS theo mức 80% / 95%: phần bệnh nhân trả thừa được tự lập phiếu hoàn
+     * trên các biên lai tạm thu của lượt (mới nhất trước), lễ tân chi trả như phiếu hoàn thường (BR31).
+     */
+    private void hoanTamThuThua(Integer maLK, BigDecimal thua, String ghiChu) {
+        BigDecimal con = thua;
+        for (Map<String, Object> bl : tv.ds("""
+                SELECT bl.MaBL, bl.TongTien - COALESCE((SELECT SUM(p.SoTien) FROM PhieuHoanTien p
+                                                         WHERE p.MaBL = bl.MaBL AND p.TrangThai <> 'TU_CHOI'), 0) AS TongTien
+                FROM BienLaiTamThu bl WHERE bl.MaLK = ? AND bl.TrangThai = 'DA_THU'
+                ORDER BY bl.MaBL DESC""", maLK)) {
+            if (con.signum() <= 0) {
+                break;
+            }
+            BigDecimal soTien = con.min((BigDecimal) bl.get("TongTien"));
+            if (soTien.signum() <= 0) {
+                continue;
+            }
+            hoanTien.taoDeNghi((Integer) bl.get("MaBL"), null, null, "BHYT_XAC_MINH",
+                    ghiChu == null ? "Hoàn phần đã tạm thu thừa sau khi tính BHYT" : ghiChu, soTien, null);
+            con = con.subtract(soTien);
         }
-        return giaBhyt.multiply(BigDecimal.valueOf((long) soLuong * muc))
-                .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).min(thanhTien);
     }
 
     /** Lượt hoàn tất gần đây chưa có hóa đơn (VD hoàn tất trước khi có chức năng này) thì lập bù. */
@@ -207,9 +249,9 @@ public class HoaDonService {
     @Transactional(readOnly = true)
     public Map<String, Object> chiTiet(Integer maHD, Integer maBN) {
         Map<String, Object> hd = tv.mot("""
-                SELECT hd.MaHD, hd.MaSoHoaDon, hd.MaLK, lk.MaLichHen, lk.NgayKham, lk.MaBN, lk.TrangThaiBHYT, lk.MucHuong,
+                SELECT hd.MaHD, hd.MaSoHoaDon, hd.MaLK, lk.MaLichHen, lk.NgayKham, lk.MaBN, lk.TrangThaiBHYT, lk.MucHuong, lk.MaMucHuong,
                        bn.HoTen, bn.NgaySinh, bn.GioiTinh, bn.SDT, bs.HoTen AS BacSi, ck.TenCK, hd.NgayLap, hd.TongTien,
-                       hd.BHYTChiTra, hd.DaTamThu, hd.ConPhaiThu, hd.TrangThai, hd.HinhThuc, hd.TienKhachDua,
+                       hd.BHYTChiTra, hd.GhiChuBHYT, hd.DaTamThu, hd.ConPhaiThu, hd.TrangThai, hd.HinhThuc, hd.TienKhachDua,
                        hd.NgayThanhToan, tn.HoTen AS ThuNgan, hd.LyDoHuy, nh.HoTen AS NguoiHuy, goc.MaSoHoaDon AS MaSoHoaDonGoc,
                        (SELECT t.MaSoHoaDon FROM HoaDon t WHERE t.MaHDGoc = hd.MaHD ORDER BY t.MaHD DESC LIMIT 1) AS HoaDonThayThe
                 FROM HoaDon hd JOIN LuotKham lk ON lk.MaLK = hd.MaLK JOIN BenhNhan bn ON bn.MaBN = lk.MaBN
@@ -238,18 +280,29 @@ public class HoaDonService {
 
     /** Hóa đơn của bệnh nhân (mới nhất trước). */
     @Transactional
-    public List<Map<String, Object>> cuaBenhNhan(Integer maBN) {
-        if (maBN == null) {
-            throw new KhongTimThay("Tài khoản chưa có hồ sơ");
-        }
+    public List<Map<String, Object>> cuaBenhNhan(List<Integer> dsMaBN) {
         lapBu();
         return tv.ds("""
                 SELECT hd.MaHD, hd.MaSoHoaDon, hd.MaLK, lk.MaLichHen, lk.NgayKham, bs.HoTen AS BacSi, ck.TenCK, hd.NgayLap,
+                       lk.MaBN, bn.HoTen AS BenhNhan,
                        hd.TongTien, hd.BHYTChiTra, hd.DaTamThu, hd.ConPhaiThu, hd.TrangThai, hd.HinhThuc, hd.NgayThanhToan
                 FROM HoaDon hd JOIN LuotKham lk ON lk.MaLK = hd.MaLK JOIN NhanVien bs ON bs.MaNV = lk.MaBS
-                LEFT JOIN ChuyenKhoa ck ON ck.MaCK = bs.MaCK
-                WHERE lk.MaBN = ? AND hd.TrangThai <> 'DA_HUY'
-                ORDER BY hd.TrangThai = 'CHUA_THANH_TOAN' DESC, hd.NgayLap DESC""", maBN);
+                JOIN BenhNhan bn ON bn.MaBN = lk.MaBN LEFT JOIN ChuyenKhoa ck ON ck.MaCK = bs.MaCK
+                WHERE lk.MaBN IN (?) AND hd.TrangThai <> 'DA_HUY'
+                ORDER BY hd.TrangThai = 'CHUA_THANH_TOAN' DESC, hd.NgayLap DESC""", dsMaBN);
+    }
+
+    /** Bệnh nhân của hóa đơn / giao dịch MoMo (để kiểm tra tài khoản có quản lý hồ sơ đó không, UC1.7). */
+    @Transactional(readOnly = true)
+    public Integer chuHoaDon(Integer maHD) {
+        return tv.giaTri("SELECT lk.MaBN FROM HoaDon hd JOIN LuotKham lk ON lk.MaLK = hd.MaLK WHERE hd.MaHD = ?", maHD);
+    }
+
+    @Transactional(readOnly = true)
+    public Integer chuGiaoDich(String maDon) {
+        return tv.giaTri("""
+                SELECT lk.MaBN FROM GiaoDichMoMo gd JOIN HoaDon hd ON hd.MaHD = gd.MaHD JOIN LuotKham lk ON lk.MaLK = hd.MaLK
+                WHERE gd.MaDonMoMo = ?""", maDon);
     }
 
     // ================= Hủy hóa đơn (UC10.5, BR26) =================

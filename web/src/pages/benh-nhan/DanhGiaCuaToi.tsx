@@ -1,11 +1,12 @@
 import { CameraOutlined, ReloadOutlined, StarFilled } from '@ant-design/icons'
 import {
-  Alert, App, Avatar, Button, Card, Drawer, Empty, Flex, Image, Input, List, Rate, Result, Skeleton, Tag, Typography, Upload,
+  Alert, App, Avatar, Button, Card, Drawer, Flex, Image, Input, List, Rate, Result, Skeleton, Tag, Typography, Upload,
   type UploadFile,
 } from 'antd'
 import dayjs from 'dayjs'
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import DanhGiaTuDo from '@/components/DanhGiaTuDo'
 import { useManHinhNho } from '@/hooks/manHinh'
 import { api, LoiApi, type BieuMauDanhGia, type CotTieuChi, type DanhGia, type LuotChoDanhGia } from '@/lib/api'
 import { SU_KIEN_SO_DANH_GIA, TIEU_CHI_DANH_GIA } from '@/lib/hangSo'
@@ -14,8 +15,8 @@ const NHAN_SAO = ['Rất tệ', 'Tệ', 'Bình thường', 'Tốt', 'Rất tốt
 const SO_ANH_TOI_DA = 3
 
 /**
- * UC12.1: bệnh nhân đánh giá bác sĩ và 6 tiêu chí dịch vụ (BR24) cho lượt khám đã thanh toán, trong 7 ngày.
- * Tiêu chí không sử dụng có thể bỏ trống. Mở từ lời mời đánh giá: /danh-gia?luot=123.
+ * Đánh giá: đánh giá phòng khám bất kỳ lúc nào (cơ sở vật chất, dịch vụ, từng lễ tân / bác sĩ, góp ý) và đánh giá
+ * lượt khám đã thanh toán trong 7 ngày (UC12.1, BR24) khi có. Mở từ lời mời đánh giá: /danh-gia?luot=123.
  */
 export default function DanhGiaCuaToi() {
   const { message } = App.useApp()
@@ -52,14 +53,16 @@ export default function DanhGiaCuaToi() {
 
   return (
     <Flex vertical gap={16}>
-      <Card>
-        <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
-          <Typography.Title level={4} style={{ margin: 0 }}>Đánh giá sau khám</Typography.Title>
-          <Button icon={<ReloadOutlined />} onClick={tai} aria-label="Làm mới" />
-        </Flex>
-        {du === null ? <Skeleton active /> : du.ChoDanhGia.length === 0 ? (
-          <Empty description="Không có lượt khám nào đang chờ đánh giá" />
-        ) : (
+      <Flex justify="space-between" align="center">
+        <Typography.Title level={4} style={{ margin: 0 }}>Đánh giá</Typography.Title>
+        <Button icon={<ReloadOutlined />} onClick={tai} aria-label="Làm mới" />
+      </Flex>
+
+      <DanhGiaTuDo onXong={tai} />
+
+      {du === null ? <Card><Skeleton active /></Card> : du.ChoDanhGia.length > 0 && (
+      <Card title="Lượt khám chờ đánh giá">
+        {(
           <List dataSource={du.ChoDanhGia} renderItem={(l) => {
             const conGio = dayjs(l.HanDanhGia).diff(dayjs(), 'hour')
             return (
@@ -83,9 +86,10 @@ export default function DanhGiaCuaToi() {
           }} />
         )}
         <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0, fontSize: 12 }}>
-          Mỗi lượt khám được đánh giá một lần trong vòng 7 ngày sau khi thanh toán. Ý kiến của bạn giúp phòng khám phục vụ tốt hơn.
+          Mỗi lượt khám được đánh giá một lần trong vòng 7 ngày sau khi thanh toán, kèm điểm bác sĩ đã khám cho bạn.
         </Typography.Paragraph>
       </Card>
+      )}
 
       {du && du.DaDanhGia.length > 0 && (
         <Card title="Đánh giá đã gửi">
@@ -111,7 +115,7 @@ export function XemDanhGia({ d, hienBenhNhan }: { d: DanhGia; hienBenhNhan?: boo
     <Flex vertical gap={6}>
       <Flex justify="space-between" wrap gap={8}>
         <div>
-          <Typography.Text strong>{d.BacSi}</Typography.Text>
+          <Typography.Text strong>{d.LoaiDanhGia === 'TU_DO' ? 'Đánh giá phòng khám' : d.BacSi}</Typography.Text>
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>
             {d.NgayKham && ` · khám ${dayjs(d.NgayKham).format('DD/MM/YYYY')}`}{d.TenCK && ` · ${d.TenCK}`}
             {hienBenhNhan && d.BenhNhan && ` · ${d.BenhNhan}`}
@@ -119,14 +123,28 @@ export function XemDanhGia({ d, hienBenhNhan }: { d: DanhGia; hienBenhNhan?: boo
         </div>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>Gửi {dayjs(d.ThoiGian).format('HH:mm DD/MM/YYYY')}</Typography.Text>
       </Flex>
-      <Flex align="center" gap={8}>
-        <Typography.Text style={{ minWidth: 70 }}>Bác sĩ</Typography.Text>
-        <Rate disabled value={d.DiemBacSi ?? 0} style={{ fontSize: 16 }} />
-      </Flex>
+      {d.DiemBacSi != null && (
+        <Flex align="center" gap={8}>
+          <Typography.Text style={{ minWidth: 70 }}>Bác sĩ</Typography.Text>
+          <Rate disabled value={d.DiemBacSi} style={{ fontSize: 16 }} />
+        </Flex>
+      )}
       {d.NhanXetBacSi && <Typography.Paragraph style={{ margin: 0 }}>“{d.NhanXetBacSi}”</Typography.Paragraph>}
       {tieuChi.length > 0 && (
         <Flex wrap gap={6}>
           {tieuChi.map((t) => <Tag key={t.cot}>{t.ten}: {d[t.cot]}★</Tag>)}
+        </Flex>
+      )}
+      {(d.NhanVien?.length ?? 0) > 0 && (
+        <Flex vertical gap={2}>
+          {d.NhanVien!.map((n) => (
+            <div key={n.MaNV}>
+              <Typography.Text>{n.HoTen}</Typography.Text>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>{n.TenCK ? ` · ${n.TenCK}` : n.LoaiNhanVien === 'LE_TAN' ? ' · Lễ tân' : ''}</Typography.Text>
+              {' '}<Rate disabled value={n.Diem} style={{ fontSize: 13 }} />
+              {n.NhanXet && <Typography.Text type="secondary"> “{n.NhanXet}”</Typography.Text>}
+            </div>
+          ))}
         </Flex>
       )}
       {d.NhanXetDichVu && <Typography.Paragraph style={{ margin: 0 }}>“{d.NhanXetDichVu}”</Typography.Paragraph>}

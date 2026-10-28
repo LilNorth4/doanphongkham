@@ -21,6 +21,7 @@ import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.dichvu.KhamBenhService;
 import vn.vietbac.phongkham.dichvu.KhamBenhService.CapNhatHoSo;
 import vn.vietbac.phongkham.dichvu.KhamBenhService.ThuocKe;
+import vn.vietbac.phongkham.dichvu.NguoiThanService;
 import vn.vietbac.phongkham.xacthuc.CanQuyen;
 import vn.vietbac.phongkham.xacthuc.NguoiDung;
 
@@ -30,9 +31,11 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 public class KhamBenhController {
 
     private final KhamBenhService kham;
+    private final NguoiThanService nguoiThan;
 
-    public KhamBenhController(KhamBenhService kham) {
+    public KhamBenhController(KhamBenhService kham, NguoiThanService nguoiThan) {
         this.kham = kham;
+        this.nguoiThan = nguoiThan;
     }
 
     public record Thuoc(@JsonProperty("ma_thuoc") Integer maThuoc, @JsonProperty("so_luong") Integer soLuong,
@@ -177,14 +180,25 @@ public class KhamBenhController {
 
     @GetMapping("/ho-so-suc-khoe")
     @CanQuyen("HO_SO.XEM_CUA_MINH")
-    public List<Map<String, Object>> hoSoSucKhoe(NguoiDung nd) {
-        return kham.hoSoCuaBenhNhan(nd.maBN());
+    public List<Map<String, Object>> hoSoSucKhoe(@RequestParam(value = "ma_bn", required = false) Integer maBN,
+                                                 NguoiDung nd) {
+        return kham.hoSoCuaBenhNhan(nguoiThan.chon(nd, maBN));
+    }
+
+    /** UC11.3: các dãy chỉ số theo lần khám của bản thân hoặc người thân (ma_bn). */
+    @GetMapping("/ho-so-suc-khoe/chi-so")
+    @CanQuyen("HO_SO.XEM_CUA_MINH")
+    public List<Map<String, Object>> chiSo(@RequestParam(value = "ma_bn", required = false) Integer maBN, NguoiDung nd) {
+        return kham.chiSoTheoLanKham(nguoiThan.chon(nd, maBN));
     }
 
     @GetMapping("/ho-so-suc-khoe/{maLK}")
     @CanQuyen("HO_SO.XEM_CUA_MINH")
     public Map<String, Object> chiTietHoSoSucKhoe(@PathVariable Integer maLK, NguoiDung nd) {
-        return kham.hoSoChiTietCuaBenhNhan(maLK, nd.maBN(), nd.maTK());
+        // Lượt khám của bản thân hoặc người thân do tài khoản quản lý (UC1.7)
+        Integer chu = kham.chuLuotKham(maLK);
+        nguoiThan.kiemTra(nd, chu, "Không tìm thấy hồ sơ khám");
+        return kham.hoSoChiTietCuaBenhNhan(maLK, chu, nd.maTK());
     }
 
     private static Integer bacSi(NguoiDung nd) {

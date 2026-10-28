@@ -53,7 +53,7 @@ public class XuLyLoi {
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     ResponseEntity<Map<String, String>> tepQuaLon(MaxUploadSizeExceededException e) {
-        return tra(HttpStatus.BAD_REQUEST, "Ảnh tối đa 2 MB");
+        return tra(HttpStatus.BAD_REQUEST, "Tệp tải lên quá lớn (ảnh đại diện tối đa 2 MB, kết quả cận lâm sàng tối đa 20 MB)");
     }
 
     @ExceptionHandler({HttpMessageNotReadableException.class, MissingServletRequestPartException.class, MethodArgumentNotValidException.class,

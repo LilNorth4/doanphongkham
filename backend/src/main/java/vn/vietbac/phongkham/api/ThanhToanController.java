@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.extern.slf4j.Slf4j;
 import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.dichvu.HoaDonService;
+import vn.vietbac.phongkham.dichvu.NguoiThanService;
 import vn.vietbac.phongkham.xacthuc.CanQuyen;
 import vn.vietbac.phongkham.xacthuc.NguoiDung;
 
@@ -31,9 +32,11 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 public class ThanhToanController {
 
     private final HoaDonService hoaDon;
+    private final NguoiThanService nguoiThan;
 
-    public ThanhToanController(HoaDonService hoaDon) {
+    public ThanhToanController(HoaDonService hoaDon, NguoiThanService nguoiThan) {
         this.hoaDon = hoaDon;
+        this.nguoiThan = nguoiThan;
     }
 
     public record ThuTien(@JsonProperty("hinh_thuc") String hinhThuc,
@@ -93,19 +96,19 @@ public class ThanhToanController {
     @GetMapping("/cua-toi")
     @CanQuyen("HO_SO.XEM_CUA_MINH")
     public List<Map<String, Object>> cuaToi(NguoiDung nd) {
-        return hoaDon.cuaBenhNhan(nd.maBN());
+        return hoaDon.cuaBenhNhan(nguoiThan.quanLy(nd));
     }
 
     @GetMapping("/cua-toi/{maHD}")
     @CanQuyen("HO_SO.XEM_CUA_MINH")
     public Map<String, Object> chiTietCuaToi(@PathVariable Integer maHD, NguoiDung nd) {
-        return hoaDon.chiTiet(maHD, benhNhan(nd));
+        return hoaDon.chiTiet(maHD, chuHoaDon(maHD, nd));
     }
 
     @PostMapping("/cua-toi/{maHD}/momo")
     @CanQuyen("HO_SO.XEM_CUA_MINH")
     public Map<String, Object> momoCuaToi(@PathVariable Integer maHD, NguoiDung nd) {
-        return hoaDon.taoThanhToanMoMo(maHD, benhNhan(nd), nd.maTK());
+        return hoaDon.taoThanhToanMoMo(maHD, chuHoaDon(maHD, nd), nd.maTK());
     }
 
     // ---------- Kết quả MoMo ----------
@@ -113,13 +116,13 @@ public class ThanhToanController {
     /** Trạng thái giao dịch (trang chờ quét mã QR hỏi định kỳ). Thu ngân xem mọi giao dịch, bệnh nhân chỉ của mình. */
     @GetMapping("/momo/{maDon}")
     public Map<String, Object> trangThaiMoMo(@PathVariable String maDon, NguoiDung nd) {
-        return hoaDon.capNhatMoMo(maDon, nd.co("THANH_TOAN.THU") ? null : benhNhan(nd));
+        return hoaDon.capNhatMoMo(maDon, nd.co("THANH_TOAN.THU") ? null : chuGiaoDich(maDon, nd));
     }
 
     /** Trình duyệt quay về từ MoMo: giao diện gửi lại các tham số MoMo gắn trên đường dẫn. */
     @PostMapping("/momo/ket-qua")
     public Map<String, Object> ketQuaMoMo(@RequestBody Map<String, Object> thamSo, NguoiDung nd) {
-        return hoaDon.xuLyKetQuaMoMo(chuoi(thamSo), nd.co("THANH_TOAN.THU") ? null : benhNhan(nd));
+        return hoaDon.xuLyKetQuaMoMo(chuoi(thamSo), nd.co("THANH_TOAN.THU") ? null : chuGiaoDich(String.valueOf(thamSo.get("orderId")), nd));
     }
 
     /** IPN: MoMo gọi thẳng máy chủ (chỉ tới được khi phòng khám có địa chỉ công khai). Không cần đăng nhập, xác thực bằng chữ ký. */
@@ -139,10 +142,16 @@ public class ThanhToanController {
         return kq;
     }
 
-    private static Integer benhNhan(NguoiDung nd) {
-        if (nd.maBN() == null) {
-            throw new LoiQuyen("Tài khoản không gắn với hồ sơ bệnh nhân");
-        }
-        return nd.maBN();
+    /** Bệnh nhân xem / trả hóa đơn của mình và của người thân do tài khoản quản lý (UC1.7). */
+    private Integer chuHoaDon(Integer maHD, NguoiDung nd) {
+        Integer maBN = hoaDon.chuHoaDon(maHD);
+        nguoiThan.kiemTra(nd, maBN, "Không tìm thấy hóa đơn");
+        return maBN;
+    }
+
+    private Integer chuGiaoDich(String maDon, NguoiDung nd) {
+        Integer maBN = hoaDon.chuGiaoDich(maDon);
+        nguoiThan.kiemTra(nd, maBN, "Không tìm thấy giao dịch MoMo");
+        return maBN;
     }
 }

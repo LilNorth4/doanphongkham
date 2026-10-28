@@ -1,7 +1,6 @@
 package vn.vietbac.phongkham.dichvu;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -17,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import tools.jackson.databind.ObjectMapper;
+import vn.vietbac.phongkham.chung.BaoHiemYTe;
 import vn.vietbac.phongkham.chung.CanhBaoThuoc;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
@@ -341,7 +341,8 @@ public class KhamBenhService {
             throw new LoiNghiepVu("Ghi chẩn đoán sơ bộ (mục Chẩn đoán) và lưu trước khi chỉ định");
         }
         boolean coBhyt = "HOP_LE".equals(lk.get("TrangThaiBHYT"));
-        int mucHuong = lk.get("MucHuong") instanceof Number n ? n.intValue() : 0;
+        int mucHuong = coBhyt && lk.get("MucHuong") instanceof Number n ? n.intValue() : 0;
+        Integer maMuc = !coBhyt ? null : lk.get("MaMucHuong") instanceof Number m ? m.intValue() : 2;
         LocalDateTime bayGio = dongHo.bayGio();
         List<Integer> kq = new ArrayList<>();
         int thuTu = 1;
@@ -358,9 +359,8 @@ public class KhamBenhService {
             }
             BigDecimal gia = (BigDecimal) dv.get("GiaDichVu");
             BigDecimal giaBhyt = (BigDecimal) dv.get("GiaBHYT");
-            BigDecimal bhytTra = coBhyt && giaBhyt != null
-                    ? giaBhyt.multiply(BigDecimal.valueOf(mucHuong)).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP)
-                    : BigDecimal.ZERO;
+            // Mức 5 (quân nhân, công an, cơ yếu) trả cả dịch vụ ngoài danh mục BHYT
+            BigDecimal bhytTra = BaoHiemYTe.chiTra(maMuc, mucHuong, giaBhyt, 1, gia);
             boolean traHet = bhytTra.compareTo(gia) >= 0;
             tv.capNhat("""
                     INSERT INTO PhieuChiDinh (MaLK, MaDV, MaPhong, MaBSChiDinh, ChanDoanSoBo, YeuCau, GiaDichVu, GiaBHYT,
@@ -520,7 +520,13 @@ public class KhamBenhService {
                 ORDER BY lk.NgayKham DESC, lk.MaLK DESC""", maBN);
     }
 
-    /** Bệnh nhân xem chi tiết một lần khám của chính mình (chỉ hồ sơ đã hoàn tất). */
+    /** Bệnh nhân của lượt khám (để kiểm tra tài khoản có quản lý hồ sơ đó, UC1.7). */
+    @Transactional(readOnly = true)
+    public Integer chuLuotKham(Integer maLK) {
+        return tv.giaTri("SELECT MaBN FROM LuotKham WHERE MaLK = ?", maLK);
+    }
+
+    /** Bệnh nhân xem chi tiết một lần khám của chính mình hoặc người thân (chỉ hồ sơ đã hoàn tất). */
     @Transactional
     public Map<String, Object> hoSoChiTietCuaBenhNhan(Integer maLK, Integer maBN, Integer maTK) {
         Integer chuSoHuu = tv.giaTri("SELECT MaBN FROM LuotKham WHERE MaLK = ? AND TrangThai = 'HOAN_THANH'", maLK);
@@ -533,6 +539,86 @@ public class KhamBenhService {
             don.forEach(t -> ((Map<?, ?>) t).remove("LyDoBoQuaCanhBao"));
         }
         return kq;
+    }
+
+    // ================= UC11.3: chỉ số qua các lần khám =================
+
+    /**
+     * Các dãy chỉ số của bệnh nhân theo lần khám đã hoàn tất: sinh hiệu (huyết áp, mạch, nhiệt độ, cân nặng, BMI)
+     * và từng chỉ số xét nghiệm, kèm khoảng tham chiếu. Mỗi dãy: Ma, Ten, Nhom, DonVi, Duoi, Tren, Diem[{NgayKham,
+     * MaLK, GiaTri, GiaTri2}] (GiaTri2 = tâm trương với huyết áp). Giao diện báo chưa đủ dữ liệu khi dãy dưới 2 điểm.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> chiSoTheoLanKham(Integer maBN) {
+        Map<String, Map<String, Object>> day = new java.util.LinkedHashMap<>();
+        for (Map<String, Object> r : tv.ds("""
+                SELECT lk.MaLK, lk.NgayKham, hs.HuyetAp, hs.Mach, hs.NhietDo, hs.CanNang, hs.ChieuCao
+                FROM LuotKham lk JOIN HoSoBenhAn hs ON hs.MaLK = lk.MaLK
+                WHERE lk.MaBN = ? AND lk.TrangThai = 'HOAN_THANH' AND hs.TrangThai = 'HOAN_TAT'
+                ORDER BY lk.NgayKham, lk.MaLK""", maBN)) {
+            if (r.get("HuyetAp") instanceof String ha && ha.matches("\\d{2,3}/\\d{2,3}")) {
+                String[] p = ha.split("/");
+                // Tham chiếu tâm thu 90-139, tâm trương 60-89 mmHg (từ 140/90 là tăng huyết áp)
+                them(day, "HUYET_AP", "Huyết áp", "Sinh hiệu", "mmHg", 90, 139, r, new BigDecimal(p[0]), new BigDecimal(p[1]));
+            }
+            if (r.get("Mach") instanceof Number m) {
+                them(day, "MACH", "Mạch", "Sinh hiệu", "lần/phút", 60, 100, r, BigDecimal.valueOf(m.longValue()), null);
+            }
+            if (r.get("NhietDo") instanceof BigDecimal t) {
+                them(day, "NHIET_DO", "Nhiệt độ", "Sinh hiệu", "°C", 36, 37.5, r, t, null);
+            }
+            if (r.get("CanNang") instanceof BigDecimal kg) {
+                them(day, "CAN_NANG", "Cân nặng", "Sinh hiệu", "kg", null, null, r, kg, null);
+                if (r.get("ChieuCao") instanceof BigDecimal cm && cm.signum() > 0) {
+                    BigDecimal m = cm.divide(BigDecimal.valueOf(100));
+                    // BMI người châu Á (WHO): bình thường 18,5-22,9
+                    them(day, "BMI", "Chỉ số khối cơ thể (BMI)", "Sinh hiệu", "kg/m²", 18.5, 22.9, r,
+                            kg.divide(m.multiply(m), 1, java.math.RoundingMode.HALF_UP), null);
+                }
+            }
+        }
+        for (Map<String, Object> r : tv.ds("""
+                SELECT ms.MaChiSo, ms.TenChiSo, ms.DonVi, ms.GioiHanDuoi, ms.GioiHanTren, dv.TenDV, kq.GiaTri,
+                       lk.MaLK, lk.NgayKham
+                FROM KetQuaChiSo kq JOIN MauChiSo ms ON ms.MaChiSo = kq.MaChiSo JOIN DichVu dv ON dv.MaDV = ms.MaDV
+                JOIN KetQuaCLS k ON k.MaKQ = kq.MaKQ JOIN PhieuChiDinh p ON p.MaPCD = k.MaPCD
+                JOIN LuotKham lk ON lk.MaLK = p.MaLK
+                WHERE lk.MaBN = ? AND lk.TrangThai = 'HOAN_THANH'
+                ORDER BY dv.TenDV, ms.ThuTu, lk.NgayKham, lk.MaLK""", maBN)) {
+            Number duoi = (Number) r.get("GioiHanDuoi");
+            Number tren = (Number) r.get("GioiHanTren");
+            them(day, "XN_" + r.get("MaChiSo"), (String) r.get("TenChiSo"), "Xét nghiệm: " + r.get("TenDV"),
+                    (String) r.get("DonVi"), duoi, tren, r, (BigDecimal) r.get("GiaTri"), null);
+        }
+        return new ArrayList<>(day.values());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void them(Map<String, Map<String, Object>> day, String ma, String ten, String nhom, String donVi,
+                             Number duoi, Number tren, Map<String, Object> luot, BigDecimal giaTri, BigDecimal giaTri2) {
+        Map<String, Object> d = day.computeIfAbsent(ma, k -> {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("Ma", ma);
+            m.put("Ten", ten);
+            m.put("Nhom", nhom);
+            m.put("DonVi", donVi);
+            m.put("Duoi", duoi);
+            m.put("Tren", tren);
+            if ("HUYET_AP".equals(ma)) {
+                m.put("Duoi2", 60);
+                m.put("Tren2", 89);
+            }
+            m.put("Diem", new ArrayList<Map<String, Object>>());
+            return m;
+        });
+        Map<String, Object> diem = new java.util.LinkedHashMap<>();
+        diem.put("NgayKham", luot.get("NgayKham"));
+        diem.put("MaLK", luot.get("MaLK"));
+        diem.put("GiaTri", giaTri);
+        if (giaTri2 != null) {
+            diem.put("GiaTri2", giaTri2);
+        }
+        ((List<Map<String, Object>>) d.get("Diem")).add(diem);
     }
 
     // ================= Dùng chung =================
@@ -586,7 +672,8 @@ public class KhamBenhService {
                     SELECT ms.TenChiSo, ms.DonVi, ms.GioiHanDuoi, ms.GioiHanTren, k.GiaTri, k.DanhGia
                     FROM KetQuaChiSo k JOIN MauChiSo ms ON ms.MaChiSo = k.MaChiSo
                     WHERE k.MaKQ = ? ORDER BY ms.ThuTu""", p.get("MaKQ")));
-            p.put("Tep", p.get("MaKQ") == null ? List.of() : canLamSang.tepCuaKetQua((Integer) p.get("MaKQ")));
+            // Bác sĩ điều trị, bệnh nhân chỉ thấy ảnh / PDF khi phiếu đã trả kết quả (bản nháp của phòng CLS chưa hiện)
+            p.put("Tep", p.get("MaKQ") == null ? List.of() : canLamSang.tepCuaPhieu((Integer) p.get("MaPCD")));
         }
         return ds;
     }
@@ -594,7 +681,7 @@ public class KhamBenhService {
     /** Lượt khám phải của đúng bác sĩ; khoa = true thì khóa dòng để đổi trạng thái an toàn. */
     private Map<String, Object> luotCuaBacSi(Integer maLK, Integer maBS, boolean khoa) {
         Map<String, Object> lk = tv.mot("""
-                SELECT MaLK, MaLichHen, MaBN, MaBS, NgayKham, TrangThai, TrieuChungSoBo, TrangThaiBHYT, MucHuong
+                SELECT MaLK, MaLichHen, MaBN, MaBS, NgayKham, TrangThai, TrieuChungSoBo, TrangThaiBHYT, MucHuong, MaMucHuong
                 FROM LuotKham WHERE MaLK = ?""" + (khoa ? " FOR UPDATE" : ""), maLK);
         if (lk == null) {
             throw new KhongTimThay("Không tìm thấy lượt khám");

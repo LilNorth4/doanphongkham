@@ -1,11 +1,12 @@
 # Chạy toàn bộ hệ thống: docker compose up -d --build  →  mở http://localhost
 # Biến môi trường đọc từ file .env ở thư mục gốc (sao chép từ .env.example).
+# CSDL trong Docker tách riêng với MySQL cài trên máy; DB_PASSWORD trống thì dùng mật khẩu mặc định "phongkham".
 services:
   db:
     image: mysql:8.4
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?Cần đặt DB_PASSWORD trong file .env}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-phongkham}
       MYSQL_DATABASE: ${DB_NAME:-phongkham}
       TZ: Asia/Ho_Chi_Minh
     command:
@@ -30,10 +31,16 @@ services:
       DB_PORT: 3306
       DB_NAME: ${DB_NAME:-phongkham}
       DB_USER: root
-      DB_PASSWORD: ${DB_PASSWORD}
+      DB_PASSWORD: ${DB_PASSWORD:-phongkham}
       CHE_DO_THU: ${CHE_DO_THU:-0}
       DU_LIEU_THU: ${DU_LIEU_THU:-0}
       THU_MUC_TAI_LEN: /app/du-lieu-tai-len
+      # MoMo đưa người dùng về giao diện Nginx (cổng WEB_PORT), không phải 8080
+      DIA_CHI_WEB: ${DIA_CHI_WEB:-http://localhost:${WEB_PORT:-80}}
+      MOMO_ENDPOINT: ${MOMO_ENDPOINT:-https://test-payment.momo.vn}
+      MOMO_PARTNER_CODE: ${MOMO_PARTNER_CODE:-MOMO}
+      MOMO_ACCESS_KEY: ${MOMO_ACCESS_KEY:-F8BBA842ECF85}
+      MOMO_SECRET_KEY: ${MOMO_SECRET_KEY:-K951B6PE1waDMi640xX08PD3vg6EkVlz}
     volumes:
       - tai_len:/app/du-lieu-tai-len
 

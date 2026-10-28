@@ -3,9 +3,10 @@ import {
   ReloadOutlined, SaveOutlined, SoundOutlined, WarningOutlined,
 } from '@ant-design/icons'
 import {
-  Alert, App, Button, Card, Checkbox, Col, DatePicker, Descriptions, Empty, Flex, Form, Input, InputNumber, List, Modal,
+  Alert, App, Button, Card, Checkbox, Col, Descriptions, Empty, Flex, Form, Input, InputNumber, List, Modal,
   Result, Row, Select, Skeleton, Space, Tag, Tooltip, Typography,
 } from 'antd'
+import ONhapNgay from '@/components/ONhapNgay'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -428,7 +429,7 @@ export default function KhamBenh() {
                   </Row>
                   <Form.Item name="loi_dan" label="Lời dặn"><Input.TextArea autoSize={{ minRows: 2, maxRows: 6 }} /></Form.Item>
                   <Form.Item name="ngay_tai_kham" label="Hẹn tái khám" style={{ marginBottom: 0 }}>
-                    <DatePicker format="DD/MM/YYYY" disabledDate={(d) => !d.isAfter(dayjs(), 'day')} style={{ width: nho ? '100%' : 200 }} />
+                    <ONhapNgay disabledDate={(d) => !d.isAfter(dayjs(), 'day')} style={{ width: nho ? '100%' : 200 }} />
                   </Form.Item>
                 </Card>
 

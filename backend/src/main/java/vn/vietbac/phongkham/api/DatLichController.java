@@ -1,6 +1,7 @@
 package vn.vietbac.phongkham.api;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +21,7 @@ import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.chung.TruyVan;
 import vn.vietbac.phongkham.dichvu.DatLichService;
 import vn.vietbac.phongkham.dichvu.DatLichService.LocLichHen;
+import vn.vietbac.phongkham.dichvu.NguoiThanService;
 import vn.vietbac.phongkham.xacthuc.CanQuyen;
 import vn.vietbac.phongkham.xacthuc.NguoiDung;
 
@@ -29,15 +31,18 @@ import vn.vietbac.phongkham.xacthuc.NguoiDung;
 public class DatLichController {
 
     private final DatLichService datLich;
+    private final NguoiThanService nguoiThan;
     private final TruyVan tv;
 
-    public DatLichController(DatLichService datLich, TruyVan tv) {
+    public DatLichController(DatLichService datLich, NguoiThanService nguoiThan, TruyVan tv) {
         this.datLich = datLich;
+        this.nguoiThan = nguoiThan;
         this.tv = tv;
     }
 
+    /** ma_bn: người khám (bản thân khi bỏ trống, hoặc hồ sơ người thân của tài khoản, UC1.7). */
     public record DatLich(@JsonProperty("ma_kg") Integer maKG, @JsonProperty("ly_do") String lyDo,
-                          @JsonProperty("trieu_chung") String trieuChung) {
+                          @JsonProperty("trieu_chung") String trieuChung, @JsonProperty("ma_bn") Integer maBN) {
     }
 
     public record DoiLich(@JsonProperty("ma_kg") Integer maKG) {
@@ -47,7 +52,8 @@ public class DatLichController {
     }
 
     public record DangKyCho(@JsonProperty("ma_ck") Integer maCK, LocalDate ngay, String buoi,
-                            @JsonProperty("ma_bs") Integer maBS, @JsonProperty("ly_do") String lyDo) {
+                            @JsonProperty("ma_bs") Integer maBS, @JsonProperty("ly_do") String lyDo,
+                            @JsonProperty("ma_bn") Integer maBN) {
     }
 
     // ---------- Tra cứu chung (mọi người dùng đã đăng nhập) ----------
@@ -79,32 +85,24 @@ public class DatLichController {
 
     // ---------- Bệnh nhân (gói 6) ----------
 
-    /** MaBN của người gọi; tài khoản chưa gắn hồ sơ bệnh nhân thì không đặt lịch được. */
-    private static Integer maBN(NguoiDung nd) {
-        if (nd.maBN() == null) {
-            throw new LoiQuyen("Tài khoản chưa gắn hồ sơ bệnh nhân");
-        }
-        return nd.maBN();
-    }
-
-    /** Bệnh nhân chỉ thao tác trên lịch hẹn của mình; lịch của người khác coi như không tồn tại. */
+    /** Bệnh nhân chỉ thao tác trên lịch hẹn của mình và người thân; lịch của người khác coi như không tồn tại. */
     private void lichCuaToi(Integer maLK, NguoiDung nd) {
-        if (!datLich.benhNhanCuaLich(maLK).equals(maBN(nd))) {
-            throw new KhongTimThay("Không tìm thấy lịch hẹn");
-        }
+        nguoiThan.kiemTra(nd, datLich.benhNhanCuaLich(maLK), "Không tìm thấy lịch hẹn");
     }
 
     /** UC6.1: đặt trên web -> Chờ lễ tân xác nhận. */
     @PostMapping("/lich-hen")
     @CanQuyen("LICH_HEN.DAT")
     public Map<String, Object> datLich(@RequestBody DatLich b, NguoiDung nd) {
-        return Map.of("ma_lk", datLich.datLich(maBN(nd), b.maKG(), "WEB", rong(b.lyDo()), rong(b.trieuChung()), nd.maTK()));
+        return Map.of("ma_lk", datLich.datLich(nguoiThan.chon(nd, b.maBN()), b.maKG(), "WEB", rong(b.lyDo()),
+                rong(b.trieuChung()), nd.maTK()));
     }
 
     @GetMapping("/lich-hen/cua-toi")
     @CanQuyen("LICH_HEN.DAT")
     public List<Map<String, Object>> lichHenCuaToi(NguoiDung nd) {
-        return datLich.dsLichHen(new LocLichHen(maBN(nd), null, null, null, null, true));
+        // Lịch của bản thân và người thân; giao diện lọc theo người khám (cột MaBN, BenhNhan)
+        return datLich.dsLichHen(new LocLichHen(nguoiThan.quanLy(nd), null, null, null, null, true));
     }
 
     @PostMapping("/lich-hen/{maLK}/huy")
@@ -129,28 +127,33 @@ public class DatLichController {
     @GetMapping("/danh-sach-cho")
     @CanQuyen("LICH_HEN.DAT")
     public List<Map<String, Object>> danhSachCho(NguoiDung nd) {
-        return datLich.dsDangKyCho(maBN(nd));
+        List<Map<String, Object>> ds = new ArrayList<>();
+        for (Integer maBN : nguoiThan.quanLy(nd)) {
+            ds.addAll(datLich.dsDangKyCho(maBN));
+        }
+        return ds;
     }
 
     @PostMapping("/danh-sach-cho")
     @CanQuyen("LICH_HEN.DAT")
     public Map<String, Object> dangKyCho(@RequestBody DangKyCho b, NguoiDung nd) {
-        return Map.of("ma_dkc", datLich.dangKyCho(maBN(nd), b.maCK(), b.ngay(), b.buoi(), b.maBS(), rong(b.lyDo())));
+        return Map.of("ma_dkc", datLich.dangKyCho(nguoiThan.chon(nd, b.maBN()), b.maCK(), b.ngay(), b.buoi(), b.maBS(),
+                rong(b.lyDo())));
     }
 
     @PostMapping("/danh-sach-cho/{maDKC}/nhan")
     @CanQuyen("LICH_HEN.DAT")
     public Map<String, Object> nhanCho(@PathVariable Integer maDKC, NguoiDung nd) {
-        if (tv.dem("SELECT COUNT(*) FROM DangKyCho WHERE MaDKC = ? AND MaBN = ?", maDKC, maBN(nd)) == 0) {
-            throw new KhongTimThay("Không tìm thấy đăng ký chờ");
-        }
+        nguoiThan.kiemTra(nd, tv.giaTri("SELECT MaBN FROM DangKyCho WHERE MaDKC = ?", maDKC), "Không tìm thấy đăng ký chờ");
         return Map.of("ma_lk", datLich.nhanCho(maDKC, nd.maTK(), "WEB"));
     }
 
     @PostMapping("/danh-sach-cho/{maDKC}/huy")
     @CanQuyen("LICH_HEN.DAT")
     public Map<String, Object> huyCho(@PathVariable Integer maDKC, NguoiDung nd) {
-        datLich.huyDangKyCho(maDKC, maBN(nd));
+        Integer maBN = tv.giaTri("SELECT MaBN FROM DangKyCho WHERE MaDKC = ?", maDKC);
+        nguoiThan.kiemTra(nd, maBN, "Không tìm thấy đăng ký chờ");
+        datLich.huyDangKyCho(maDKC, maBN);
         return XacThucController.OK;
     }
 

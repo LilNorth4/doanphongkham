@@ -22,6 +22,7 @@ import vn.vietbac.phongkham.chung.KhongTimThay;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
 import vn.vietbac.phongkham.chung.LoiQuyen;
 import vn.vietbac.phongkham.chung.LuuAnh;
+import vn.vietbac.phongkham.chung.TepBaoMat;
 import vn.vietbac.phongkham.chung.TruyVan;
 
 /**
@@ -33,22 +34,28 @@ import vn.vietbac.phongkham.chung.TruyVan;
 public class CanLamSangService {
 
     public static final List<String> PHIEU_CHUA_XONG = List.of("CHO_THANH_TOAN", "CHO_THUC_HIEN", "DANG_THUC_HIEN");
-    private static final long TEP_TOI_DA = 10L * 1024 * 1024;
+    /** UC9.3 2a: ảnh / PDF kết quả tối đa 20 MB (khớp ràng buộc TepDinhKem.KichThuoc). */
+    private static final long TEP_TOI_DA = 20L * 1024 * 1024;
+    /** UC9.3, UC9.4 4a: chẩn đoán hình ảnh, nội soi phải có ảnh mới trả kết quả. */
+    private static final List<String> BAT_BUOC_ANH = List.of("CDHA", "NOI_SOI");
     private static final int SO_TEP_TOI_DA = 10;
 
     private final ThongBaoService thongBao;
     private final NhatKyService nhatKy;
     private final TiepDonService tiepDon;
     private final LuuAnh luuAnh;
+    private final TepBaoMat tepBaoMat;
     private final TruyVan tv;
     private final DongHo dongHo;
     private final ObjectMapper json;
 
-    public CanLamSangService(ThongBaoService thongBao, NhatKyService nhatKy, TiepDonService tiepDon, LuuAnh luuAnh, TruyVan tv, DongHo dongHo, ObjectMapper json) {
+    public CanLamSangService(ThongBaoService thongBao, NhatKyService nhatKy, TiepDonService tiepDon, LuuAnh luuAnh,
+                             TepBaoMat tepBaoMat, TruyVan tv, DongHo dongHo, ObjectMapper json) {
         this.thongBao = thongBao;
         this.nhatKy = nhatKy;
         this.tiepDon = tiepDon;
         this.luuAnh = luuAnh;
+        this.tepBaoMat = tepBaoMat;
         this.tv = tv;
         this.dongHo = dongHo;
         this.json = json;
@@ -138,10 +145,13 @@ public class CanLamSangService {
                        kq.SoMauSinhThiet, kq.ViTriSinhThiet, kq.PhienBan, kq.ThoiGianTra, kq.NgayCapNhat,
                        th.HoTen AS BacSiThucHien
                 FROM KetQuaCLS kq JOIN NhanVien th ON th.MaNV = kq.MaBSThucHien WHERE kq.MaPCD = ?""", maPCD);
+        // Tệp tải lên từ lúc đang thực hiện (trước khi trả kết quả)
+        List<Map<String, Object>> tep = tepCuaPhieu(maPCD);
+        p.put("Tep", tep);
         if (kq != null) {
             Integer maKQ = (Integer) kq.get("MaKQ");
             kq.put("ChiSo", chiSoCuaKetQua(maKQ));
-            kq.put("Tep", tepCuaKetQua(maKQ));
+            kq.put("Tep", tep);
             kq.put("LichSu", tv.ds("""
                     SELECT ls.PhienBan, ls.NoiDungCu, ls.LyDoDieuChinh, ls.ThoiGian, nv.HoTen AS NguoiSua
                     FROM LichSuKetQua ls JOIN NhanVien nv ON nv.MaNV = ls.MaNguoiSua
@@ -207,6 +217,11 @@ public class CanLamSangService {
             throw new LoiNghiepVu("Chỉ trả kết quả cho phiếu đang thực hiện");
         }
         List<Object[]> chiSo = kiemTraKetQua(p, b);
+        long soTep = tv.dem("SELECT COUNT(*) FROM TepDinhKem WHERE MaPCD = ?", maPCD);
+        if (BAT_BUOC_ANH.contains(p.get("LoaiDV")) && soTep == 0) {
+            throw new LoiNghiepVu("Tải lên ít nhất một ảnh " + ("NOI_SOI".equals(p.get("LoaiDV")) ? "nội soi" : "chụp")
+                    + " trước khi trả kết quả");
+        }
         LocalDateTime bayGio = dongHo.bayGio();
         tv.capNhat("""
                 INSERT INTO KetQuaCLS (MaPCD, MaBSThucHien, MoTa, KetLuan, NhanXet, DaNhinAn, DaKyDongY, CoSinhThiet,
@@ -221,6 +236,11 @@ public class CanLamSangService {
                 UPDATE PhieuChiDinh SET TrangThai = 'CO_KET_QUA', ThoiDiemCoKetQua = ?,
                        MaBSThucHien = COALESCE(MaBSThucHien, ?) WHERE MaPCD = ?""", bayGio, maNV, maPCD);
         nhatKy.ghi(maTK, "TRA_KET_QUA_CLS", "PhieuChiDinh", maPCD, p.get("MaLichHen") + ": " + p.get("TenDV"));
+        // UC9.5 bước 3: báo bác sĩ chỉ định từng kết quả (kèm số ảnh / PDF); đủ hết thì sauKhiCoKetQua báo thêm
+        String ketLuan = rong(b.ketLuan()) != null ? rong(b.ketLuan()) : rong(b.nhanXet());
+        thongBao.nhanVien((Integer) p.get("MaBSChiDinh"), "KET_QUA_CLS", "Có kết quả " + p.get("TenDV"),
+                p.get("HoTen") + " (" + p.get("MaLichHen") + "): " + (ketLuan != null ? ketLuan : "đã có kết quả")
+                        + (soTep > 0 ? " · " + soTep + " ảnh/PDF đính kèm" : ""), "LUOT_KHAM", (Integer) p.get("MaLK"));
         sauKhiCoKetQua((Integer) p.get("MaLK"));
         return maKQ;
     }
@@ -274,15 +294,16 @@ public class CanLamSangService {
     @Transactional
     public Map<String, Object> themTep(Integer maPCD, Integer maNV, MultipartFile tep, String moTa, Integer maTK) {
         Map<String, Object> p = phieuCuaPhong(maPCD, maNV, true);
-        Integer maKQ = tv.giaTri("SELECT MaKQ FROM KetQuaCLS WHERE MaPCD = ?", maPCD);
-        if (maKQ == null) {
-            throw new LoiNghiepVu("Trả kết quả trước rồi mới đính kèm tệp");
+        // UC9.3, UC9.4: tải ảnh / PDF ngay khi đang thực hiện; sau khi trả vẫn bổ sung được đến khi lượt khám hoàn tất
+        boolean boSung = "CO_KET_QUA".equals(p.get("TrangThai"));
+        if (!"DANG_THUC_HIEN".equals(p.get("TrangThai")) && !boSung) {
+            throw new LoiNghiepVu("Chỉ đính kèm tệp khi phiếu đang thực hiện hoặc đã có kết quả");
         }
         if ("HOAN_THANH".equals(p.get("TrangThaiLuot"))) {
             throw new LoiNghiepVu("Lượt khám đã hoàn tất, không được thêm tệp");
         }
-        if (tv.dem("SELECT COUNT(*) FROM TepDinhKem WHERE MaKQ = ?", maKQ) >= SO_TEP_TOI_DA) {
-            throw new LoiNghiepVu("Mỗi kết quả tối đa " + SO_TEP_TOI_DA + " tệp");
+        if (tv.dem("SELECT COUNT(*) FROM TepDinhKem WHERE MaPCD = ?", maPCD) >= SO_TEP_TOI_DA) {
+            throw new LoiNghiepVu("Mỗi phiếu tối đa " + SO_TEP_TOI_DA + " tệp");
         }
         String mt = rong(moTa);
         if (mt != null && mt.length() > 255) {
@@ -292,27 +313,36 @@ public class CanLamSangService {
         String ten = tep.getOriginalFilename() == null || tep.getOriginalFilename().isBlank()
                 ? duongDan.substring(duongDan.lastIndexOf('/') + 1) : tep.getOriginalFilename().strip();
         tv.capNhat("""
-                INSERT INTO TepDinhKem (DuongDan, TenTep, LoaiTep, KichThuoc, MoTa, MaKQ, MaNguoiTaiLen, ThoiGian)
+                INSERT INTO TepDinhKem (DuongDan, TenTep, LoaiTep, KichThuoc, MoTa, MaPCD, MaNguoiTaiLen, ThoiGian)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 duongDan, ten.length() > 255 ? ten.substring(ten.length() - 255) : ten,
-                duongDan.substring(duongDan.lastIndexOf('.') + 1).toUpperCase(Locale.ROOT), tep.getSize(), mt, maKQ, maTK,
+                duongDan.substring(duongDan.lastIndexOf('.') + 1).toUpperCase(Locale.ROOT), tep.getSize(), mt, maPCD, maTK,
                 dongHo.bayGio());
         Integer maTep = ((Number) tv.giaTri("SELECT LAST_INSERT_ID()")).intValue();
         nhatKy.ghi(maTK, "THEM_TEP_CLS", "TepDinhKem", maTep, p.get("MaLichHen") + ": " + p.get("TenDV") + " - " + ten);
-        return tv.mot("SELECT MaTep, DuongDan, TenTep, LoaiTep, KichThuoc, MoTa FROM TepDinhKem WHERE MaTep = ?", maTep);
+        if (boSung) {
+            thongBao.nhanVien((Integer) p.get("MaBSChiDinh"), "KET_QUA_CLS", "Bổ sung tệp " + p.get("TenDV"),
+                    p.get("HoTen") + " (" + p.get("MaLichHen") + "): thêm " + ten, "LUOT_KHAM", (Integer) p.get("MaLK"));
+        }
+        Map<String, Object> kq = tv.mot("SELECT MaTep, DuongDan, TenTep, LoaiTep, KichThuoc, MoTa FROM TepDinhKem WHERE MaTep = ?", maTep);
+        kq.put("DuongDan", tepBaoMat.ky(maTep));
+        return kq;
     }
 
     @Transactional
     public void xoaTep(Integer maTep, Integer maNV, Integer maTK) {
         Map<String, Object> t = tv.mot("""
-                SELECT t.MaTep, t.DuongDan, t.TenTep, k.MaPCD FROM TepDinhKem t JOIN KetQuaCLS k ON k.MaKQ = t.MaKQ
-                WHERE t.MaTep = ?""", maTep);
+                SELECT MaTep, DuongDan, TenTep, MaPCD FROM TepDinhKem WHERE MaTep = ? AND MaPCD IS NOT NULL""", maTep);
         if (t == null) {
             throw new KhongTimThay("Không tìm thấy tệp");
         }
         Map<String, Object> p = phieuCuaPhong((Integer) t.get("MaPCD"), maNV, true);
         if ("HOAN_THANH".equals(p.get("TrangThaiLuot"))) {
             throw new LoiNghiepVu("Lượt khám đã hoàn tất, không được xóa tệp");
+        }
+        if ("CO_KET_QUA".equals(p.get("TrangThai")) && BAT_BUOC_ANH.contains(p.get("LoaiDV"))
+                && tv.dem("SELECT COUNT(*) FROM TepDinhKem WHERE MaPCD = ?", t.get("MaPCD")) <= 1) {
+            throw new LoiNghiepVu("Kết quả đã trả phải còn ít nhất một ảnh; tải ảnh thay thế lên trước rồi xóa ảnh này");
         }
         tv.capNhat("DELETE FROM TepDinhKem WHERE MaTep = ?", maTep);
         luuAnh.xoa((String) t.get("DuongDan"));
@@ -469,10 +499,11 @@ public class CanLamSangService {
                 WHERE k.MaKQ = ? ORDER BY ms.ThuTu, ms.MaChiSo""", maKQ);
     }
 
-    public List<Map<String, Object>> tepCuaKetQua(Integer maKQ) {
-        return tv.ds("""
+    /** Ảnh / PDF của phiếu, DuongDan là đường dẫn có chữ ký (người gọi đã được kiểm tra quyền xem phiếu). */
+    public List<Map<String, Object>> tepCuaPhieu(Integer maPCD) {
+        return tepBaoMat.kyDanhSach(tv.ds("""
                 SELECT MaTep, DuongDan, TenTep, LoaiTep, KichThuoc, MoTa, ThoiGian FROM TepDinhKem
-                WHERE MaKQ = ? ORDER BY ThoiGian, MaTep""", maKQ);
+                WHERE MaPCD = ? ORDER BY ThoiGian, MaTep""", maPCD));
     }
 
     /** Phiếu phải thuộc phòng bác sĩ phụ trách (BR11); khoa = true thì khóa dòng để đổi trạng thái an toàn. */
@@ -483,6 +514,7 @@ public class CanLamSangService {
                        p.SoLanBoQua, p.ThoiDiemVaoHangCho, p.ThoiDiemBatDau, p.ThoiDiemCoKetQua, dv.TenDV, dv.LoaiDV,
                        dv.MauKetQua, dv.YeuCauNhinAn, ph.MaSoPhong, ph.TenPhong, lk.MaLichHen, lk.MaBN,
                        lk.MaBS AS MaBSDieuTri, lk.TrangThai AS TrangThaiLuot, bn.HoTen, bs.HoTen AS BacSiChiDinh,
+                       p.MaBSChiDinh,
                        (SELECT GROUP_CONCAT(dv2.TenDV ORDER BY dv2.TenDV SEPARATOR ', ')
                         FROM RangBuocDichVu rb JOIN PhieuChiDinh p2 ON p2.MaLK = p.MaLK AND p2.MaDV = rb.MaDVTruoc
                         JOIN DichVu dv2 ON dv2.MaDV = p2.MaDV

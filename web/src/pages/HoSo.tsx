@@ -1,12 +1,14 @@
-import { CameraOutlined, DeleteOutlined, EditOutlined, KeyOutlined, LockOutlined } from '@ant-design/icons'
+import { CameraOutlined, DeleteOutlined, EditOutlined, IdcardOutlined, KeyOutlined, LockOutlined } from '@ant-design/icons'
 import {
-  Alert, App, Button, Card, Col, DatePicker, Descriptions, Flex, Form, Input, Popconfirm, Radio, Rate, Row, Skeleton,
+  Alert, App, Button, Card, Col, Descriptions, Flex, Form, Input, Popconfirm, Radio, Rate, Row, Skeleton,
   Tag, Typography, Upload,
 } from 'antd'
+import ONhapNgay from '@/components/ONhapNgay'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AnhDaiDien from '@/components/AnhDaiDien'
+import { XemThe } from '@/components/TheBhyt'
 import { api, type CapNhatHoSo, type HoSo as HoSoKieu } from '@/lib/api'
 import { usePhien } from '@/lib/auth'
 import { MAU_VAI_TRO, quyTac, TEN_VAI_TRO } from '@/lib/hangSo'
@@ -170,7 +172,7 @@ export default function HoSo() {
                 <Col xs={24} sm={12}>
                   <Form.Item name="ngay_sinh" label="Ngày sinh"
                     rules={laBenhNhan ? [{ required: true, message: 'Vui lòng chọn ngày sinh' }] : []}>
-                    <DatePicker format="DD/MM/YYYY" placeholder="dd/mm/yyyy" style={{ width: '100%' }}
+                    <ONhapNgay placeholder="dd/mm/yyyy" style={{ width: '100%' }}
                       disabledDate={(d) => d.isAfter(dayjs())} />
                   </Form.Item>
                 </Col>
@@ -256,6 +258,21 @@ export default function HoSo() {
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               Do bác sĩ ghi nhận khi khám. Nếu thông tin chưa đúng, hãy báo bác sĩ ở lần khám tới.
             </Typography.Text>
+          </Card>
+        )}
+
+        {laBenhNhan && (
+          <Card title={<><IdcardOutlined /> Thẻ bảo hiểm y tế</>} style={{ marginTop: 24 }}>
+            {hs.TheBHYT?.length ? (
+              <Flex vertical gap={16}>{hs.TheBHYT.map((t) => <XemThe key={t.MaThe} the={t} />)}</Flex>
+            ) : (
+              <Typography.Text type="secondary">Chưa có thẻ BHYT trong hồ sơ.</Typography.Text>
+            )}
+            <div style={{ marginTop: 12 }}>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                Thẻ do lễ tân nhập khi bạn đăng ký khám. Có thẻ mới hoặc gia hạn thẻ, hãy mang thẻ (hoặc mở VssID) đến quầy lễ tân để cập nhật.
+              </Typography.Text>
+            </div>
           </Card>
         )}
       </Col>

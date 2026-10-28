@@ -2,9 +2,10 @@ import {
   DeleteOutlined, EyeOutlined, KeyOutlined, LockOutlined, MoreOutlined, PlusOutlined, SwapOutlined, UnlockOutlined,
 } from '@ant-design/icons'
 import {
-  App, Button, Card, Col, DatePicker, Dropdown, Flex, Form, Input, InputNumber, Modal, Radio, Row, Select, Space,
+  App, Button, Card, Col, Dropdown, Flex, Form, Input, InputNumber, Modal, Radio, Row, Select, Space,
   Tag, Tooltip, Typography, type FormInstance, type MenuProps, type TableProps,
 } from 'antd'
+import ONhapNgay from '@/components/ONhapNgay'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useCallback, useEffect, useState } from 'react'
 import BangThichUng from '@/components/BangThichUng'
@@ -324,7 +325,7 @@ export default function QuanLyTaiKhoan() {
             </Col>
             <Col xs={24} sm={12}>
               <Form.Item name="ngay_sinh" label="Ngày sinh">
-                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} disabledDate={(d) => d.isAfter(dayjs())} />
+                <ONhapNgay style={{ width: '100%' }} disabledDate={(d) => d.isAfter(dayjs())} />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>

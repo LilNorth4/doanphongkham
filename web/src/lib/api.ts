@@ -78,6 +78,8 @@ export interface HoSo {
   NguoiLienHe?: string | null
   SDTNguoiLienHe?: string | null
   DiUng?: string | null
+  /** Thẻ BHYT do lễ tân nhập, bệnh nhân chỉ xem */
+  TheBHYT?: TheBHYT[]
   // Nhân viên
   LoaiNhanVien?: VaiTroNhanVien
   HocHamHocVi?: string | null
@@ -204,7 +206,27 @@ export interface BenhNhan {
   DiUng: string | null
 }
 
-export interface TheBHYT { MaThe: string; HoTenTrenThe: string; NgayHetHan: string; MucHuong: number }
+/** Thẻ BHYT: số thẻ 15 ký tự = mã đối tượng + mã mức hưởng (1-5) + mã tỉnh + mã số BHXH 10 số */
+export interface TheBHYT {
+  MaThe: string; MaSoBHXH: string; MaDoiTuong: string; TenDoiTuong: string; MaMucHuong: number; MaTinh: string
+  HoTenTrenThe: string; NgaySinhTrenThe: string; NoiDKKCB: string | null; NgayBatDau: string; NgayHetHan: string
+  /** Tỷ lệ quỹ BHYT trả (%) theo mã mức hưởng */
+  MucHuong: number
+  NgayDu5NamLienTuc: string | null; MienCungChiTraTu: string | null
+  ConHan: boolean; MienCungChiTra: boolean
+}
+
+/** Cổng giám định BHYT giả lập: giải mã số thẻ, thẻ đã có trên cổng thì kèm thông tin */
+export interface TraCuuBhyt {
+  MaThe: string; MaDoiTuong: string; TenDoiTuong: string; MaMucHuong: number; MucHuong: number; MaTinh: string
+  MaSoBHXH: string; CoCungChiTra: boolean
+  TrenCong: (Pick<TheBHYT, 'MaThe' | 'NgayBatDau' | 'NgayHetHan' | 'NoiDKKCB'> & { HoTen: string; MaBN: number }) | null
+}
+
+export interface NhapTheBhyt {
+  so_the: string; tu_ngay: string | null; den_ngay: string | null; noi_dkkcb: string | null
+  ngay_du_5_nam: string | null; mien_cung_chi_tra_tu: string | null
+}
 
 export interface ThongBao {
   MaTB: number
@@ -454,6 +476,8 @@ export type HinhThucHoaDon = HinhThucThu | 'MOMO'
 export interface DongHoaDon {
   MaHD: number
   MaSoHoaDon: string
+  /** Danh sách hóa đơn của bệnh nhân: người khám (bản thân hoặc người thân, UC1.7) */
+  BenhNhan?: string
   MaLK: number
   MaLichHen: string
   NgayKham: string
@@ -490,6 +514,9 @@ export interface HoaDon extends DongHoaDon {
     ThoiDiemLap: string; ThoiDiemHoan: string | null; MaChungTu: string }[]
   TrangThaiBHYT: LichHen['TrangThaiBHYT']
   MucHuong: number | null
+  MaMucHuong: number | null
+  /** Lý do BHYT trả 100% (chi phí dưới 15% lương cơ sở, giấy miễn cùng chi trả) */
+  GhiChuBHYT: string | null
   TienKhachDua: string | null
   ChiTiet: {
     MaCTHD: number; LoaiMuc: 'KHAM' | 'CLS' | 'THUOC'; NoiDung: string; SoLuong: number; GiaDichVu: string
@@ -513,8 +540,18 @@ export interface LuotChoDanhGia {
   MaLK: number; MaLichHen: string; NgayKham: string; BacSi: string; HocHamHocVi: string | null; TenCK: string | null
   NgayThanhToan: string; HanDanhGia: string
 }
+/** Nhân viên được chấm trong đánh giá tự do */
+export interface DiemNhanVienDaGui { MaNV: number; Diem: number; NhanXet: string | null; HoTen: string; LoaiNhanVien: string; TenCK: string | null }
+export interface NhanVienDanhGia {
+  MaNV: number; HoTen: string; LoaiNhanVien: string; HocHamHocVi: string | null; AnhDaiDien: string | null
+  DiemDanhGiaTB: string | null; SoLuotDanhGia: number; TenCK: string | null; MaSoPhong: string | null
+}
+export interface BieuMauTuDo { TieuChi: Record<CotTieuChi, string>; NhomNhanVien: Record<string, string>; NhanVien: NhanVienDanhGia[] }
+
 export type DanhGia = Partial<Record<CotTieuChi, number | null>> & {
-  MaDG: number; MaLK: number; MaBS: number; DiemBacSi: number | null; NhanXetBacSi: string | null; NhanXetDichVu: string | null
+  /** SAU_KHAM: gắn lượt khám (BR24); TU_DO: gửi bất kỳ lúc nào, chấm dịch vụ và từng nhân viên */
+  LoaiDanhGia: 'SAU_KHAM' | 'TU_DO'; NhanVien?: DiemNhanVienDaGui[]
+  MaDG: number; MaLK: number | null; MaBS: number | null; DiemBacSi: number | null; NhanXetBacSi: string | null; NhanXetDichVu: string | null
   ThoiGian: string; TrangThaiPhanTich: 'CHUA_PHAN_TICH' | 'DA_PHAN_TICH'; CamXuc: CamXuc | null; ChuDe: string[] | null
   MucDoNghiemTrong: MucDoNghiemTrong | null; Anh: TepDinhKem[]
   MaLichHen?: string; NgayKham?: string; BacSi?: string; TenCK?: string | null; BenhNhan?: string
@@ -529,7 +566,7 @@ export interface BaoCaoDanhGia {
     TrungTinh: number; TieuCuc: number; ChuaPhanTich: number }
   TheoThang: { Thang: string; SoDanhGia: number; DiemBacSi: number | null; DiemDichVu: number | null; TichCuc: number; TieuCuc: number }[]
   ChuDe: { ChuDe: string; TichCuc: number; TrungTinh: number; TieuCuc: number }[]
-  BacSi: { MaNV: number; HoTen: string; TenCK: string | null; SoDanhGia: number; DiemBacSi: number | null; TieuCuc: number }[]
+  BacSi: { MaNV: number; HoTen: string; LoaiNhanVien?: string; TenCK: string | null; SoDanhGia: number; DiemBacSi: number | null; TieuCuc: number }[]
   TongHop: { CoTongHop: true; MoDau: string; DiemManh: string[]; CanCaiThien: string[] } | { CoTongHop: false; LyDo: string }
 }
 export type LoaiGopY = 'GOP_Y' | 'KHIEU_NAI'
@@ -674,6 +711,8 @@ export interface HangChoCls { Phong: PhongCls; DangCho: PhieuChoCls[]; DaXong: P
 
 export interface ChiTietPhieuCls {
   MaPCD: number
+  /** Ảnh / PDF đã tải lên cho phiếu (kể cả trước khi trả kết quả); DuongDan có chữ ký, hết hạn sau 2 giờ */
+  Tep: TepKetQua[]
   MaLK: number
   MaDV: number
   TrangThai: TrangThaiPhieuCls
@@ -772,6 +811,26 @@ export interface LanKham {
   GioiTinh: 'NAM' | 'NU' | null
   HoSo: HoSoBenhAn | null
   ChiDinh: PhieuChiDinh[]
+}
+
+/** UC1.7: hồ sơ người thân do tài khoản quản lý */
+export interface NguoiThan {
+  MaBN: number; QuanHe: string; TrangThai: 'CHO_OTP' | 'CHO_LE_TAN' | 'DA_LIEN_KET'; NgayLienKet: string | null
+  NgayTao: string; HoTen: string; NgaySinh: string | null; GioiTinh: 'NAM' | 'NU' | null; SDT: string | null
+  CCCD: string | null; DiaChi: string | null; SoLanKham: number
+}
+export interface KetQuaThemNguoiThan {
+  ma_bn: number; trang_thai: NguoiThan['TrangThai']; ho_ten?: string; sdt_an?: string
+  /** Chỉ có ở chế độ thử (không có cổng SMS thật) */
+  otp_thu?: string
+}
+export interface LienKetChoLeTan { MaTK: number; MaBN: number; QuanHe: string; NgayTao: string; NguoiQuanLy: string; SDT: string | null; Email: string | null }
+
+/** UC11.3: một dãy chỉ số qua các lần khám (GiaTri2 = tâm trương với huyết áp) */
+export interface DayChiSo {
+  Ma: string; Ten: string; Nhom: string; DonVi: string | null
+  Duoi: number | null; Tren: number | null; Duoi2?: number; Tren2?: number
+  Diem: { NgayKham: string; MaLK: number; GiaTri: string | number; GiaTri2?: string | number }[]
 }
 
 export interface DongHoSoSucKhoe {
@@ -1011,13 +1070,13 @@ export const api = {
     goi<KhungGio[]>(`/dat-lich/khung-gio${query(loc)}`),
 
   // Bệnh nhân
-  datLich: (b: { ma_kg: number; ly_do?: string; trieu_chung?: string }) =>
+  datLich: (b: { ma_kg: number; ly_do?: string; trieu_chung?: string; ma_bn?: number }) =>
     goi<{ ma_lk: number }>('/lich-hen', 'POST', b),
   lichHenCuaToi: () => goi<LichHen[]>('/lich-hen/cua-toi'),
   huyLich: (maLk: number, ly_do: string) => goi(`/lich-hen/${maLk}/huy`, 'POST', { ly_do }),
   doiLich: (maLk: number, ma_kg: number) => goi(`/lich-hen/${maLk}/doi`, 'POST', { ma_kg }),
   dsDangKyCho: () => goi<DangKyCho[]>('/danh-sach-cho'),
-  dangKyCho: (b: { ma_ck: number; ngay: string; buoi: DangKyCho['Buoi']; ma_bs?: number; ly_do?: string }) =>
+  dangKyCho: (b: { ma_ck: number; ngay: string; buoi: DangKyCho['Buoi']; ma_bs?: number; ly_do?: string; ma_bn?: number }) =>
     goi<{ ma_dkc: number }>('/danh-sach-cho', 'POST', b),
   nhanCho: (maDkc: number) => goi<{ ma_lk: number }>(`/danh-sach-cho/${maDkc}/nhan`, 'POST'),
   huyCho: (maDkc: number) => goi(`/danh-sach-cho/${maDkc}/huy`, 'POST'),
@@ -1036,9 +1095,11 @@ export const api = {
   vangMat: (maLk: number) => goi(`/le-tan/lich-hen/${maLk}/vang-mat`, 'POST'),
   timBenhNhan: (loc: { sdt?: string; cccd?: string }) => goi<BenhNhan[]>(`/le-tan/benh-nhan${query(loc)}`),
   themBenhNhan: (b: { ho_ten: string; sdt: string; ngay_sinh?: string; gioi_tinh?: 'NAM' | 'NU'; cccd?: string;
-    dia_chi?: string; nguoi_lien_he?: string; sdt_nguoi_lien_he?: string }) =>
+    dia_chi?: string; nguoi_lien_he?: string; sdt_nguoi_lien_he?: string; the_bhyt?: NhapTheBhyt | null }) =>
     goi<{ ma_bn: number }>('/le-tan/benh-nhan', 'POST', b),
   theBhyt: (maBn: number) => goi<TheBHYT[]>(`/le-tan/benh-nhan/${maBn}/the-bhyt`),
+  luuTheBhyt: (maBn: number, b: NhapTheBhyt) => goi<{ ma_the: string }>(`/le-tan/benh-nhan/${maBn}/the-bhyt`, 'POST', b),
+  traCuuBhyt: (so_the: string) => goi<TraCuuBhyt>(`/le-tan/bhyt/tra-cuu${query({ so_the })}`),
 
   // Bác sĩ
   lichKham: (ngay?: string, ma_bs?: number) => goi<LichHen[]>(`/bac-si/lich-kham${query({ ngay, ma_bs })}`),
@@ -1062,7 +1123,20 @@ export const api = {
   dsDichVuCls: () => goi<DichVuCls[]>('/kham/danh-muc/dich-vu-cls'),
 
   // Hồ sơ sức khỏe của bệnh nhân
-  hoSoSucKhoe: () => goi<DongHoSoSucKhoe[]>('/ho-so-suc-khoe'),
+  hoSoSucKhoe: (ma_bn?: number) => goi<DongHoSoSucKhoe[]>(`/ho-so-suc-khoe${query({ ma_bn })}`),
+  chiSoSucKhoe: (ma_bn?: number) => goi<DayChiSo[]>(`/ho-so-suc-khoe/chi-so${query({ ma_bn })}`),
+
+  // Người thân (UC1.7)
+  dsNguoiThan: () => goi<NguoiThan[]>('/nguoi-than'),
+  themNguoiThan: (b: { ho_ten: string; ngay_sinh: string; gioi_tinh?: 'NAM' | 'NU'; quan_he: string; sdt?: string | null
+    cccd?: string | null; dia_chi?: string | null }) => goi<KetQuaThemNguoiThan>('/nguoi-than', 'POST', b),
+  xacNhanOtpNguoiThan: (maBn: number, ma_otp: string) => goi(`/nguoi-than/${maBn}/otp`, 'POST', { ma_otp }),
+  guiLaiOtpNguoiThan: (maBn: number) => goi<{ sdt_an?: string; otp_thu?: string }>(`/nguoi-than/${maBn}/gui-lai-otp`, 'POST'),
+  suaNguoiThan: (maBn: number, b: { quan_he: string; sdt?: string | null; dia_chi?: string | null }) =>
+    goi(`/nguoi-than/${maBn}`, 'PUT', b),
+  huyNguoiThan: (maBn: number) => goi(`/nguoi-than/${maBn}`, 'DELETE'),
+  lienKetChoLeTan: (maBn: number) => goi<LienKetChoLeTan[]>(`/le-tan/benh-nhan/${maBn}/lien-ket-cho`),
+  xacNhanLienKet: (maBn: number, maTk: number) => goi(`/le-tan/benh-nhan/${maBn}/lien-ket/${maTk}/xac-nhan`, 'POST'),
   chiTietHoSoSucKhoe: (maLk: number) => goi<LanKham>(`/ho-so-suc-khoe/${maLk}`),
 
   // Thu tạm thu cận lâm sàng
@@ -1118,6 +1192,9 @@ export const api = {
   // Đánh giá sau khám, báo cáo đánh giá
   danhGiaCuaToi: () => goi<{ ChoDanhGia: LuotChoDanhGia[]; DaDanhGia: DanhGia[] }>('/danh-gia/cua-toi'),
   bieuMauDanhGia: (maLk: number) => goi<BieuMauDanhGia>(`/danh-gia/luot/${maLk}`),
+  bieuMauTuDo: () => goi<BieuMauTuDo>('/danh-gia/tu-do'),
+  guiDanhGiaTuDo: (b: { diem_dich_vu: Partial<Record<CotTieuChi, number>>; nhan_vien: { ma_nv: number; diem: number; nhan_xet?: string | null }[]
+    gop_y?: string | null }) => goi<{ ma_dg: number }>('/danh-gia/tu-do', 'POST', b),
   guiDanhGia: (maLk: number, b: { diem_bac_si: number; nhan_xet_bac_si?: string; nhan_xet_dich_vu?: string;
     diem: Partial<Record<CotTieuChi, number>> }, anh: File[]) => {
     const f = new FormData()

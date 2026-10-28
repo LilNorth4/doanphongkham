@@ -5,12 +5,13 @@ import {
 } from 'antd'
 import type { Dayjs } from 'dayjs'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useKieuBuoc, useManHinhNho } from '@/hooks/manHinh'
 import { anhChuyenKhoa } from '@/lib/anh'
-import { api, LoiApi, type BacSi, type ChuyenKhoa, type DangKyCho, type KhungGio } from '@/lib/api'
+import { api, LoiApi, type BacSi, type ChuyenKhoa, type DangKyCho, type KhungGio, type LichHen } from '@/lib/api'
 import AnhDaiDien from '@/components/AnhDaiDien'
 import ChonKhungGio from '@/components/ChonKhungGio'
+import ChonNguoiKham, { tenNguoiKham, useNguoiKham } from '@/components/ChonNguoiKham'
 import { LICH_CON_HIEU_LUC, TEN_BUOI, thuNgay, tien } from '@/lib/hangSo'
 
 const BAT_KY = 0 // "Bác sĩ bất kỳ" trong chuyên khoa
@@ -46,7 +47,14 @@ export default function DatLich() {
   const [ck, setCk] = useState<ChuyenKhoa | null>(null)
   const [maBs, setMaBs] = useState<number | null>(null)
   const [kg, setKg] = useState<KhungGio | null>(null)
-  const [soLichHieuLuc, setSoLichHieuLuc] = useState(0)
+  const [dsLich, setDsLich] = useState<LichHen[]>([])
+  // UC1.7: người khám là bản thân (undefined) hoặc người thân; mở từ trang Người thân thì chọn sẵn qua ?ma_bn=
+  const [thamSo] = useSearchParams()
+  const dsNguoiKham = useNguoiKham()
+  const [maBn, setMaBn] = useState<number | undefined>(thamSo.get('ma_bn') ? Number(thamSo.get('ma_bn')) : undefined)
+  const nguoiKham = dsNguoiKham.find((n) => n.MaBN === maBn) ?? dsNguoiKham[0]
+  // BR03 tính riêng từng người khám
+  const soLichHieuLuc = dsLich.filter((l) => l.MaBN === nguoiKham?.MaBN && LICH_CON_HIEU_LUC.includes(l.TrangThai)).length
   const [dangGui, setDangGui] = useState(false)
   const [loi, setLoi] = useState<string | null>(null)
   const [maLichHen, setMaLichHen] = useState<string | null>(null)
@@ -56,9 +64,7 @@ export default function DatLich() {
 
   useEffect(() => {
     api.dsChuyenKhoa().then(setDsCk).catch((e) => setLoi(e.message))
-    api.lichHenCuaToi()
-      .then((ds) => setSoLichHieuLuc(ds.filter((l) => LICH_CON_HIEU_LUC.includes(l.TrangThai)).length))
-      .catch(() => {})
+    api.lichHenCuaToi().then(setDsLich).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -74,7 +80,7 @@ export default function DatLich() {
     setDangGui(true)
     setLoi(null)
     try {
-      const { ma_lk } = await api.datLich({ ma_kg: kg.MaKG, ly_do: v.ly_do?.trim(), trieu_chung: v.trieu_chung?.trim() })
+      const { ma_lk } = await api.datLich({ ma_kg: kg.MaKG, ly_do: v.ly_do?.trim(), trieu_chung: v.trieu_chung?.trim(), ma_bn: maBn })
       const lh = (await api.lichHenCuaToi()).find((l) => l.MaLK === ma_lk)
       setMaLichHen(lh?.MaLichHen ?? '')
     } catch (e) {
@@ -93,7 +99,7 @@ export default function DatLich() {
     if (!ck || !cho) return
     try {
       await api.dangKyCho({ ma_ck: ck.MaCK, ngay: cho.ngay.format('YYYY-MM-DD'), buoi: v.buoi,
-        ma_bs: maBs || undefined, ly_do: v.ly_do?.trim() })
+        ma_bs: maBs || undefined, ly_do: v.ly_do?.trim(), ma_bn: maBn })
       setCho(null)
       message.success('Đã đăng ký danh sách chờ. Khi có chỗ trống, hệ thống sẽ giữ chỗ 15 phút và báo cho bạn.')
       navigate('/lich-hen-cua-toi?tab=cho')
@@ -123,12 +129,13 @@ export default function DatLich() {
   return (
     <Card>
       <Typography.Title level={4} style={{ marginTop: 0 }}>Đặt lịch khám</Typography.Title>
+      <div style={{ marginBottom: 8 }}><ChonNguoiKham ds={dsNguoiKham} value={maBn} onChange={setMaBn} /></div>
       <Steps current={buoc} size="small" style={{ margin: '8px 0 24px' }} {...kieuBuoc}
         items={[{ title: 'Chuyên khoa' }, { title: 'Bác sĩ' }, { title: 'Ngày giờ' }, { title: 'Xác nhận' }]} />
 
       {soLichHieuLuc >= 3 && (
         <Alert type="warning" showIcon style={{ marginBottom: 16 }}
-          title="Bạn đã có 3 lịch hẹn chưa hoàn thành"
+          title={`${nguoiKham && maBn ? nguoiKham.HoTen : 'Bạn'} đã có 3 lịch hẹn chưa hoàn thành`}
           description={<>Mỗi bệnh nhân có tối đa 3 lịch hẹn cùng lúc. Hãy hoàn thành hoặc hủy bớt
             trong <Link to="/lich-hen-cua-toi">Lịch hẹn của tôi</Link> trước khi đặt thêm.</>} />
       )}
@@ -214,6 +221,7 @@ export default function DatLich() {
         <Row gutter={[24, 16]}>
           <Col xs={24} lg={11}>
             <Descriptions bordered column={1} size="small" items={[
+              ...(nguoiKham ? [{ key: 'nk', label: 'Người khám', children: <b>{tenNguoiKham(nguoiKham)}</b> }] : []),
               { key: 'ck', label: 'Chuyên khoa', children: ck.TenCK },
               { key: 'bs', label: 'Bác sĩ', children: bacSi?.HoTen ?? kg.BacSi },
               { key: 'tg', label: 'Thời gian', children: <b>{kg.GioBatDau} – {kg.GioKetThuc}, {thuNgay(kg.NgayKham)}</b> },

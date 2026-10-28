@@ -20,7 +20,10 @@ export default function XemHoaDon({ hd }: { hd: HoaDon }) {
       <Descriptions size="small" column={1}>
         <Descriptions.Item label="Bệnh nhân">{hd.HoTen} · {hd.MaLichHen}</Descriptions.Item>
         <Descriptions.Item label="Khám">{dayjs(hd.NgayKham).format('DD/MM/YYYY')} · {hd.BacSi}{hd.TenCK && ` · ${hd.TenCK}`}</Descriptions.Item>
-        <Descriptions.Item label="BHYT">{hd.TrangThaiBHYT === 'HOP_LE' ? `Có, mức hưởng ${hd.MucHuong}%` : 'Không'}</Descriptions.Item>
+        <Descriptions.Item label="BHYT">
+          {hd.TrangThaiBHYT === 'HOP_LE' ? `Có${hd.MaMucHuong ? `, mức ${hd.MaMucHuong}` : ''}: quỹ trả ${hd.MucHuong}%` : 'Không'}
+          {hd.GhiChuBHYT && <div><Typography.Text type="success">{hd.GhiChuBHYT}</Typography.Text></div>}
+        </Descriptions.Item>
         {hd.MaSoHoaDonGoc && <Descriptions.Item label="Thay thế cho">{hd.MaSoHoaDonGoc} (đã hủy)</Descriptions.Item>}
         {hd.TrangThai === 'DA_HUY' && (
           <Descriptions.Item label="Đã hủy">
@@ -93,7 +96,7 @@ export function inHoaDon(hd: HoaDon) {
 <h1>HÓA ĐƠN KHÁM BỆNH</h1>
 <div class="giua">Số: <strong>${thoat(hd.MaSoHoaDon)}</strong> · ${dayjs(hd.NgayLap).format('HH:mm DD/MM/YYYY')}</div>
 <p>Bệnh nhân: <strong>${thoat(hd.HoTen)}</strong>${hd.NgaySinh ? ` (${dayjs(hd.NgaySinh).format('DD/MM/YYYY')})` : ''}<br>
-Mã lịch hẹn: ${thoat(hd.MaLichHen)} · ${thoat(hd.BacSi)}${hd.TrangThaiBHYT === 'HOP_LE' ? `<br>BHYT mức hưởng ${hd.MucHuong}%` : ''}</p>
+Mã lịch hẹn: ${thoat(hd.MaLichHen)} · ${thoat(hd.BacSi)}${hd.TrangThaiBHYT === 'HOP_LE' ? `<br>BHYT mức hưởng ${hd.MucHuong}%` : ''}${hd.GhiChuBHYT ? `<br>${thoat(hd.GhiChuBHYT)}` : ''}</p>
 <table><thead><tr><th>Khoản</th><th class="so">Thành tiền</th><th class="so">BHYT</th><th class="so">BN trả</th></tr></thead>
 <tbody>${dong}
 <tr><td colspan="3">Tổng chi phí</td><td class="so">${tien(hd.TongTien)}</td></tr>

@@ -6,6 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import XemHoaDon, { inHoaDon, TRANG_THAI_HOA_DON } from '@/components/XemHoaDon'
 import { useManHinhNho } from '@/hooks/manHinh'
 import { api, LoiApi, type DongHoaDon, type HoaDon } from '@/lib/api'
+import { usePhien } from '@/lib/auth'
 import { TEN_HINH_THUC, tien } from '@/lib/hangSo'
 
 /** Logo chữ của MoMo cho nút thanh toán (màu nhận diện #A50064). */
@@ -18,6 +19,8 @@ const NUT_MOMO = { background: '#A50064', borderColor: '#A50064' }
 export default function HoaDonCuaToi() {
   const { message } = App.useApp()
   const nho = useManHinhNho()
+  // UC1.7: hóa đơn của người thân hiện tên người khám
+  const toi = usePhien().nguoiDung?.HoTen
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const [ds, setDs] = useState<DongHoaDon[] | null>(null)
@@ -71,6 +74,7 @@ export default function HoaDonCuaToi() {
                   <Flex gap={8} align="center" wrap>
                     <Typography.Text strong>{dayjs(h.NgayKham).format('DD/MM/YYYY')}</Typography.Text>
                     <Tag color={TRANG_THAI_HOA_DON[h.TrangThai].mau}>{TRANG_THAI_HOA_DON[h.TrangThai].ten}</Tag>
+                    {h.BenhNhan && h.BenhNhan !== toi && <Tag color="purple">{h.BenhNhan}</Tag>}
                   </Flex>
                   <Typography.Text type="secondary" style={{ fontSize: 13 }}>
                     {h.BacSi}{h.TenCK && ` · ${h.TenCK}`} · {h.MaSoHoaDon}

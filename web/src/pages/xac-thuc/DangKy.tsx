@@ -1,5 +1,6 @@
 import { IdcardOutlined, LockOutlined, MailOutlined, PhoneOutlined, UserOutlined } from '@ant-design/icons'
-import { Alert, Button, Checkbox, Col, DatePicker, Form, Input, Radio, Row, Steps, Tooltip, Typography } from 'antd'
+import { Alert, Button, Checkbox, Col, Form, Input, Radio, Row, Steps, Tooltip, Typography } from 'antd'
+import ONhapNgay from '@/components/ONhapNgay'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -75,7 +76,7 @@ export default function DangKy() {
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item name="ngay_sinh" label="Ngày sinh" rules={[{ required: true, message: 'Vui lòng chọn ngày sinh' }]}>
-              <DatePicker format="DD/MM/YYYY" placeholder="dd/mm/yyyy" style={{ width: '100%' }}
+              <ONhapNgay placeholder="dd/mm/yyyy" style={{ width: '100%' }}
                 disabledDate={(d) => d.isAfter(dayjs(), 'day')} />
             </Form.Item>
           </Col>

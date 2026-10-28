@@ -1,8 +1,9 @@
 import { DesktopOutlined, EditOutlined, LogoutOutlined } from '@ant-design/icons'
 import {
-  App, Button, Card, Col, DatePicker, Descriptions, Drawer, Empty, Flex, Form, Input, InputNumber, Radio, Row,
+  App, Button, Card, Col, Descriptions, Drawer, Empty, Flex, Form, Input, InputNumber, Radio, Row,
   Skeleton, Space, Tag, Timeline, Typography,
 } from 'antd'
+import ONhapNgay from '@/components/ONhapNgay'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useCallback, useEffect, useState } from 'react'
 import { api, LoiApi, type ChiTietTaiKhoan as ChiTiet } from '@/lib/api'
@@ -135,7 +136,7 @@ export default function ChiTietTaiKhoan({ maTk, onClose, onDoi }: { maTk: number
                     </Col>
                     <Col xs={12} sm={6}>
                       <Form.Item name="NgaySinh" label="Ngày sinh">
-                        <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} disabledDate={(d) => d.isAfter(dayjs())} />
+                        <ONhapNgay style={{ width: '100%' }} disabledDate={(d) => d.isAfter(dayjs())} />
                       </Form.Item>
                     </Col>
                     <Col xs={12} sm={6}>

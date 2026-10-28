@@ -17,6 +17,7 @@ import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.KhongTimThay;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
 import vn.vietbac.phongkham.chung.LuuAnh;
+import vn.vietbac.phongkham.chung.TepBaoMat;
 import vn.vietbac.phongkham.chung.TruyVan;
 
 /**
@@ -35,10 +36,13 @@ public class GopYService {
     private final ThongBaoService thongBao;
     private final NhatKyService nhatKy;
     private final LuuAnh luuAnh;
+    private final TepBaoMat tepBaoMat;
     private final TruyVan tv;
     private final DongHo dongHo;
 
-    public GopYService(ThongBaoService thongBao, NhatKyService nhatKy, LuuAnh luuAnh, TruyVan tv, DongHo dongHo) {
+    public GopYService(ThongBaoService thongBao, NhatKyService nhatKy, LuuAnh luuAnh, TepBaoMat tepBaoMat, TruyVan tv,
+                       DongHo dongHo) {
+        this.tepBaoMat = tepBaoMat;
         this.thongBao = thongBao;
         this.nhatKy = nhatKy;
         this.luuAnh = luuAnh;
@@ -133,8 +137,9 @@ public class GopYService {
                 LEFT JOIN BenhNhan bn2 ON bn2.MaTK = td.MaTK
                 WHERE td.MaPhieu = ?""" + (noiBo ? "" : " AND td.Loai <> 'GHI_CHU_NOI_BO'") + " ORDER BY td.ThoiGian, td.MaTD",
                 maPhieu));
-        g.put("Tep", tv.ds("SELECT MaTep, DuongDan, TenTep, LoaiTep, KichThuoc FROM TepDinhKem WHERE MaPhieu = ? ORDER BY MaTep",
-                maPhieu));
+        // Tệp góp ý không phục vụ công khai: đường dẫn có chữ ký cho người xem đã được kiểm tra quyền
+        g.put("Tep", tepBaoMat.kyDanhSach(tv.ds("SELECT MaTep, DuongDan, TenTep, LoaiTep, KichThuoc FROM TepDinhKem WHERE MaPhieu = ? ORDER BY MaTep",
+                maPhieu)));
         if (!noiBo) {
             g.remove("CamXuc");
             g.remove("MucDoNghiemTrong");

@@ -17,6 +17,7 @@ const XacThucEmail = lazy(() => import('@/pages/xac-thuc/XacThucEmail'))
 const DatLich = lazy(() => import('@/pages/benh-nhan/DatLich'))
 const LichHenCuaToi = lazy(() => import('@/pages/benh-nhan/LichHenCuaToi'))
 const HoSoSucKhoe = lazy(() => import('@/pages/benh-nhan/HoSoSucKhoe'))
+const NguoiThan = lazy(() => import('@/pages/benh-nhan/NguoiThan'))
 const HoaDonCuaToi = lazy(() => import('@/pages/benh-nhan/HoaDonCuaToi'))
 const DanhGiaCuaToi = lazy(() => import('@/pages/benh-nhan/DanhGiaCuaToi'))
 const GopYCuaToi = lazy(() => import('@/pages/benh-nhan/GopYCuaToi'))
@@ -69,6 +70,7 @@ const privateRoutes: RouteItem[] = [
   { path: '/dat-lich', element: <CanDangNhap quyen="LICH_HEN.DAT"><DatLich /></CanDangNhap> },
   { path: '/lich-hen-cua-toi', element: <CanDangNhap quyen="LICH_HEN.DAT"><LichHenCuaToi /></CanDangNhap> },
   { path: '/ho-so-suc-khoe', element: <CanDangNhap quyen="HO_SO.XEM_CUA_MINH"><HoSoSucKhoe /></CanDangNhap> },
+  { path: '/nguoi-than', element: <CanDangNhap quyen="LICH_HEN.DAT"><NguoiThan /></CanDangNhap> },
   { path: '/hoa-don', element: <CanDangNhap quyen="HO_SO.XEM_CUA_MINH"><HoaDonCuaToi /></CanDangNhap> },
   { path: '/danh-gia', element: <CanDangNhap quyen="DANH_GIA.GUI"><DanhGiaCuaToi /></CanDangNhap> },
   { path: '/gop-y', element: <CanDangNhap quyen="DANH_GIA.GUI"><GopYCuaToi /></CanDangNhap> },

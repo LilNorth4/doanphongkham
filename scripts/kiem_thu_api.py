@@ -251,7 +251,7 @@ def t_bn_moi():
     sdt = '08' + str(uuid.uuid4().int)[:8]
     s, d = goi(T['letan'], '/le-tan/benh-nhan', 'POST', {'ho_ten': 'Trần Văn Vãng Lai', 'ngay_sinh': '1970-03-03', 'gioi_tinh': 'NAM',
                                                         'sdt': sdt, 'dia_chi': 'Đà Nẵng'})
-    S['bn_moi'] = (d or {}).get('ma_bn')
+    S['bn_moi'], S['bn_moi_sdt'] = (d or {}).get('ma_bn'), sdt
     s2, ds = goi(T['letan'], f'/le-tan/benh-nhan?sdt={sdt}')
     return s == 200 and ds and ds[0]['MaBN'] == S['bn_moi'], f'{s} {d}; tìm thấy {len(ds or [])}'
 
@@ -388,25 +388,49 @@ tc('CLS05', N, 'Thiếu kết luận CĐHA bị chặn', lambda: (goi(T['cdha'],
                                                         loi(*goi(T['cdha'], f'/cls/phieu/{PCD(9)}/ket-qua', 'POST', {'mo_ta': 'Phim'})))[1])
 
 
+KQ_XQ = {'mo_ta': 'Hai phế trường sáng', 'ket_luan': 'Chưa thấy bất thường'}
+tc('CLS06a', N, 'X-quang chưa có ảnh thì không trả được kết quả (UC9.3 4a)',
+   lambda: loi(*goi(T['cdha'], f'/cls/phieu/{PCD(9)}/ket-qua', 'POST', KQ_XQ), 400, 'ảnh'))
+
+
 def t_xq():
-    s, d = goi(T['cdha'], f'/cls/phieu/{PCD(9)}/ket-qua', 'POST', {'mo_ta': 'Hai phế trường sáng', 'ket_luan': 'Chưa thấy bất thường'})
-    s2, t = goi(T['cdha'], f'/cls/phieu/{PCD(9)}/tep', 'POST', tep={'tep': ('phim.png', png(), 'image/png')})
+    # Luồng UC9.3: tải ảnh phim ngay khi đang chụp, sau đó mới trả kết quả
+    s2, t = goi(T['cdha'], f'/cls/phieu/{PCD(9)}/tep', 'POST', tep={'tep': ('phim.png', png(), 'image/png'), 'mo_ta': 'Phim thẳng'})
     s3, _ = goi(T['cdha'], f'/cls/phieu/{PCD(9)}/tep', 'POST', tep={'tep': ('gia.png', b'khong phai anh', 'image/png')})
-    return s == 200 and s2 == 200 and s3 == 400, f'kết quả {s}, ảnh {s2}, tệp giả {s3}'
+    s, d = goi(T['cdha'], f'/cls/phieu/{PCD(9)}/ket-qua', 'POST', KQ_XQ)
+    S['tep_xq'] = (t or {}).get('DuongDan')
+    return s == 200 and s2 == 200 and s3 == 400, f'ảnh {s2}, tệp giả {s3}, trả kết quả {s}'
 
 
-tc('CLS06', N, 'X-quang: trả kết quả, đính kèm ảnh, chặn tệp giả', t_xq)
+tc('CLS06', N, 'X-quang: tải ảnh khi đang chụp, chặn tệp giả, rồi trả kết quả', t_xq)
+
+
+def t_tep_bao_mat():
+    goc = B[:-4]   # bỏ /api
+    duong = S['tep_xq']
+    with urllib.request.urlopen(goc + duong, timeout=30) as r:
+        ok = r.status == 200 and r.headers.get('Content-Type', '').startswith('image/png')
+    sai = goi(None, duong.replace('/api', '', 1).replace('ky=', 'ky=0'))[0]
+    tren_dia = goi(None, '/tep/ket-qua-cls/' + duong.split('/')[-1])[0]   # đường lưu trữ cũ không còn mở công khai
+    return ok and sai in (401, 403) and tren_dia == 404, f'có chữ ký 200 ảnh PNG: {ok}; chữ ký sai {sai}; đường dẫn trực tiếp {tren_dia}'
+
+
+tc('CLS06b', N, 'Ảnh kết quả chỉ mở được bằng đường dẫn có chữ ký', t_tep_bao_mat)
 
 
 def t_ns():
     a = goi(T['ns'], f'/cls/phieu/{PCD(11)}/bat-dau', 'POST')[0]
     b = loi(*goi(T['ns'], f'/cls/phieu/{PCD(11)}/ket-qua', 'POST', {'ket_luan': 'Viêm dạ dày', 'da_nhin_an': True, 'da_ky_dong_y': False}), 400, 'cam kết')
+    goi(T['ns'], f'/cls/phieu/{PCD(11)}/tep', 'POST', tep={'tep': ('hang-vi.png', png(), 'image/png'), 'mo_ta': 'Hang vị'})
     c = goi(T['ns'], f'/cls/phieu/{PCD(11)}/ket-qua', 'POST', {'mo_ta': 'Hang vị xung huyết', 'ket_luan': 'Viêm dạ dày', 'da_nhin_an': True,
                                                             'da_ky_dong_y': True, 'co_sinh_thiet': True, 'so_mau_sinh_thiet': 2, 'vi_tri_sinh_thiet': 'Hang vị'})[0]
     return a == 200 and b[0] and c == 200, f'bắt đầu {a}; thiếu cam kết: {b[1]}; trả {c}'
 
 
 tc('CLS07', N, 'Nội soi: bắt buộc cam kết, ghi sinh thiết', t_ns)
+tc('CLS07b', N, 'Bác sĩ chỉ định thấy ảnh kết quả và nhận thông báo từng kết quả', lambda: (lambda ct, tb: (
+    any(p.get('Tep') for p in ct['ChiDinh']) and any('Có kết quả' in x['TieuDe'] for x in tb.get('ds', tb) if isinstance(x, dict)),
+    f"phiếu có ảnh: {sum(1 for p in ct['ChiDinh'] if p.get('Tep'))}"))(goi(T['bsk'], f"/kham/{S['lk_kham']}")[1], goi(T['bsk'], '/thong-bao')[1]))
 tc('CLS08', N, 'Đủ kết quả → lượt khám về hàng chờ bác sĩ (Đã có kết quả)', lambda: (lambda r: (r[1]['TrangThai'] == 'DA_CO_KET_QUA', r[1]['TrangThai']))(goi(T['bsk'], f"/kham/{S['lk_kham']}")))
 
 
@@ -588,6 +612,197 @@ tc('HS01', N, 'Xem và cập nhật hồ sơ cá nhân', lambda: (lambda a: (lam
 tc('HS02', N, 'Đổi ảnh đại diện', lambda: (lambda r: (r[0] == 200, f'{r[0]}'))(goi(T['bn2'], '/ho-so/anh-dai-dien', 'POST', tep={'anh': ('a.png', png(), 'image/png')})))
 tc('HS03', N, 'Thông báo của bệnh nhân sau khi lịch được duyệt', lambda: (lambda r: (r[0] == 200 and r[1]['ds'], f"{len(r[1]['ds'])} thông báo, {r[1]['chua_doc']} chưa đọc"))(goi(T['bn2'], '/thong-bao')))
 tc('HS04', N, 'Đánh dấu đọc hết', lambda: (lambda a: (lambda b: (a[0] == 200 and b[1]['chua_doc'] == 0, f"còn {b[1]['chua_doc']}"))(goi(T['bn2'], '/thong-bao')))(goi(T['bn2'], '/thong-bao/doc-het', 'POST')))
+
+# ===================== 12. Bao hiem y te (chay truoc nhom 11 de khong anh huong luot danh gia) =====================
+N = '12. Bảo hiểm y tế'
+LCS15 = 379500 if NGAY >= datetime.date(2026, 7, 1) else 351000   # 15% lương cơ sở
+S['the'] = 'GD419' + str(uuid.uuid4().int)[:10]                    # hộ gia đình, mức 4 (80%), tỉnh 19
+tra_cuu = lambda so: goi(T['letan'], f'/le-tan/bhyt/tra-cuu?so_the={so}')
+
+tc('BH01', N, 'Số thẻ không đủ 15 ký tự bị chặn', lambda: loi(*tra_cuu('GD41901234567'), 400, '15 ký tự'))
+tc('BH02', N, 'Mã đối tượng không khớp mức hưởng (DN phải là mức 4) bị chặn', lambda: loi(*tra_cuu('DN3190123456789'), 400, 'mức hưởng'))
+tc('BH03', N, 'Mã tỉnh 00 bị chặn', lambda: loi(*tra_cuu('GD4000123456789'), 400, 'mã tỉnh'))
+
+
+def t_tra_cuu():
+    s, d = tra_cuu(S['the'])
+    return s == 200 and d['MaMucHuong'] == 4 and d['MucHuong'] == 80 and d['TrenCong'] is None and d['MaSoBHXH'] == S['the'][5:], \
+        f"{s} {d.get('TenDoiTuong')}, mức {d.get('MaMucHuong')} ({d.get('MucHuong')}%), tỉnh {d.get('MaTinh')}, BHXH {d.get('MaSoBHXH')}"
+
+
+tc('BH04', N, 'Giải mã 4 ô của thẻ hợp lệ chưa có trên cổng giả lập', t_tra_cuu)
+
+
+def t_luu_the():
+    s, ds = goi(T['letan'], f"/le-tan/benh-nhan?sdt={S['dk_sdt']}")
+    S['bn_kt'] = ds[0]['MaBN']
+    tu, den = str(NGAY - datetime.timedelta(days=30)), str(NGAY + datetime.timedelta(days=335))
+    s, d = goi(T['letan'], f"/le-tan/benh-nhan/{S['bn_kt']}/the-bhyt", 'POST',
+               {'so_the': S['the'], 'tu_ngay': tu, 'den_ngay': den, 'noi_dkkcb': 'Phòng khám Đa khoa Việt Bắc'})
+    s2, d2 = tra_cuu(S['the'])
+    return s == 200 and d2.get('TrenCong'), f'lưu {s} {d}; có trên cổng: {bool(d2.get("TrenCong"))}'
+
+
+tc('BH05', N, 'Lễ tân nhập thẻ cho bệnh nhân', t_luu_the)
+tc('BH06', N, 'Mã số BHXH đã gắn với bệnh nhân khác bị chặn', lambda: loi(*goi(T['letan'], f"/le-tan/benh-nhan/{S['bn_kt']}/the-bhyt", 'POST',
+    {'so_the': 'GD4190123456789', 'tu_ngay': str(NGAY), 'den_ngay': str(NGAY + datetime.timedelta(days=30))}), 400, 'đã gắn'))
+tc('BH07', N, 'Giấy miễn cùng chi trả với thẻ mức 1 (đã 100%) bị chặn', lambda: loi(*goi(T['letan'], f"/le-tan/benh-nhan/{S['bn_kt']}/the-bhyt", 'POST',
+    {'so_the': 'TE119' + str(uuid.uuid4().int)[:10], 'tu_ngay': str(NGAY), 'den_ngay': str(NGAY + datetime.timedelta(days=30)),
+     'mien_cung_chi_tra_tu': str(NGAY)}), 400, 'không cần giấy'))
+tc('BH08', N, 'Bệnh nhân xem thẻ trong hồ sơ cá nhân', lambda: (lambda r: (r[0] == 200 and any(t['MaThe'] == S['the'] for t in r[1].get('TheBHYT', [])),
+    f"{len(r[1].get('TheBHYT', []))} thẻ"))(goi(T['bn2'], '/ho-so')))
+
+
+def kham_co_the(don):
+    """Một lượt vãng lai hôm nay có dùng thẻ: check-in -> khám -> kê đơn -> hoàn tất; trả (kết quả check-in, hóa đơn)."""
+    s, kg = goi(T['letan'], f'/dat-lich/khung-gio?ngay={NGAY}&ma_ck=1&vang_lai=true')
+    if not kg:
+        raise RuntimeError('hôm nay không còn khung giờ chưa bắt đầu (chạy test trong giờ làm việc)')
+    s, d = goi(T['letan'], '/le-tan/lich-hen', 'POST', {'ma_bn': S['bn_kt'], 'ma_kg': kg[0]['MaKG'], 'kenh': 'TAI_QUAY',
+                                                       'ly_do': 'Tái khám đái tháo đường (kiểm thử BHYT)'})
+    lk = d['ma_lk']
+    s, ci = goi(T['letan'], f'/le-tan/lich-hen/{lk}/check-in', 'POST', {'ma_the': S['the']})
+    S['bs_kham'] = kg[0]['MaBS']
+    bs = BS()
+    goi(bs, f'/kham/{lk}/goi', 'POST')
+    thuoc = {t['TenThuoc']: t['MaThuoc'] for t in goi(bs, '/kham/danh-muc/thuoc')[1]}
+    goi(bs, f'/kham/{lk}/ho-so', 'PUT', {'ma_icd': 'E11.9', 'chan_doan': 'Đái tháo đường týp 2', 'don_thuoc': [
+        {'ma_thuoc': thuoc[ten], 'so_luong': sl, 'lieu_dung': ld, 'so_ngay_dung': 30} for ten, sl, ld in don]})
+    s, d = goi(bs, f'/kham/{lk}/hoan-tat', 'POST')
+    if s != 200:
+        raise RuntimeError(f'hoàn tất {s} {d}')
+    s, ds = goi(T['letan'], '/thanh-toan/hoa-don?trang_thai=CHUA_THANH_TOAN')
+    hd = next(h for h in ds if h['MaLK'] == lk)
+    return ci, goi(T['letan'], f"/thanh-toan/hoa-don/{hd['MaHD']}")[1]
+
+
+def t_duoi_nguong():
+    # Khám 36.500 + Metformin 60 viên x 2.500 = 186.500 đ trong phạm vi BHYT < 15% lương cơ sở
+    ci, hd = kham_co_the([('Glucophage 850', 60, '1 viên x 2 lần/ngày')])
+    ok_ci = ci.get('TrangThaiBHYT') == 'HOP_LE' and ci.get('MucHuong') == 80 and ci.get('MaMucHuong') == 4
+    kham = next(c for c in hd['ChiTiet'] if c['LoaiMuc'] == 'KHAM')
+    return ok_ci and float(kham['BHYTChiTra']) == float(kham['GiaBHYT']) and hd.get('GhiChuBHYT'), \
+        f"check-in {ci.get('TrangThaiBHYT')} {ci.get('MucHuong')}%; khám BHYT trả {kham['BHYTChiTra']}/{kham['GiaBHYT']}; {hd.get('GhiChuBHYT')}"
+
+
+tc('BH09', N, 'Check-in có thẻ mức 4; chi phí dưới 15% lương cơ sở thì BHYT trả 100%', t_duoi_nguong)
+
+
+def t_tren_nguong():
+    # Thêm Diamicron 90 viên x 3.000 = 270.000 đ: tổng phạm vi 456.500 đ vượt ngưỡng nên chỉ trả 80%
+    ci, hd = kham_co_the([('Glucophage 850', 60, '1 viên x 2 lần/ngày'), ('Diamicron MR 30', 90, '1 viên x 3 lần/ngày')])
+    kham = next(c for c in hd['ChiTiet'] if c['LoaiMuc'] == 'KHAM')
+    mong = round(float(kham['GiaBHYT']) * 0.8)
+    return float(kham['BHYTChiTra']) == mong and not hd.get('GhiChuBHYT'), \
+        f"khám BHYT trả {kham['BHYTChiTra']} (mong {mong}); tổng BHYT {hd['BHYTChiTra']}/{hd['TongTien']}; ngưỡng {LCS15}"
+
+
+tc('BH10', N, 'Chi phí vượt ngưỡng: BHYT trả 80% theo mức hưởng', t_tren_nguong)
+
+# ===================== 13. Ho so nguoi than (UC1.7), bieu do chi so (UC11.3) =====================
+N = '13. Người thân, biểu đồ chỉ số'
+
+
+def t_them_con():
+    s, d = goi(T['bn2'], '/nguoi-than', 'POST', {'ho_ten': 'Nguyễn Bé Kiểm Thử', 'ngay_sinh': '2020-05-01', 'gioi_tinh': 'NU', 'quan_he': 'Con'})
+    S['nt_con'] = (d or {}).get('ma_bn')
+    s2, ds = goi(T['bn2'], '/nguoi-than')
+    return s == 200 and d.get('trang_thai') == 'DA_LIEN_KET' and any(x['MaBN'] == S['nt_con'] for x in ds), f'{s} {d}; {len(ds)} người thân'
+
+
+tc('NT01', N, 'Thêm người thân chưa có hồ sơ (trẻ không SĐT) → tạo hồ sơ, liên kết ngay', t_them_con)
+
+
+def t_them_co_san():
+    s, d = goi(T['bn2'], '/nguoi-than', 'POST', {'ho_ten': 'Trần Văn Vãng Lai', 'ngay_sinh': '1970-03-03', 'quan_he': 'Bố',
+                                                 'sdt': S['bn_moi_sdt']})
+    S['nt_otp'] = (d or {}).get('otp_thu')
+    return s == 200 and d.get('trang_thai') == 'CHO_OTP' and d.get('ma_bn') == S['bn_moi'],         f"{s} {d.get('trang_thai')}, gửi tới {d.get('sdt_an')}; OTP thử: {'có' if S['nt_otp'] else 'không (cần CHE_DO_THU=1)'}"
+
+
+tc('NT02', N, 'Hồ sơ đã có tại phòng khám (trùng SĐT + ngày sinh) → chờ OTP gửi tới SĐT của hồ sơ', t_them_co_san)
+tc('NT03', N, 'Đặt lịch cho hồ sơ chưa xác thực OTP bị chặn', lambda: loi(*goi(T['bn2'], '/lich-hen', 'POST',
+    {'ma_kg': S['kg'][5], 'ma_bn': S['bn_moi']}), 404))
+tc('NT04', N, 'Sai mã OTP bị chặn', lambda: loi(*goi(T['bn2'], f"/nguoi-than/{S['bn_moi']}/otp", 'POST', {'ma_otp': '000000'}), 400, 'không đúng'))
+tc('NT05', N, 'Nhập đúng OTP → liên kết hồ sơ cùng lịch sử khám', lambda: (lambda r: (r[0] == 200 and any(
+    x['MaBN'] == S['bn_moi'] and x['TrangThai'] == 'DA_LIEN_KET' for x in goi(T['bn2'], '/nguoi-than')[1]), f'{r[0]} {r[1]}'))(
+    goi(T['bn2'], f"/nguoi-than/{S['bn_moi']}/otp", 'POST', {'ma_otp': S.get('nt_otp') or ''})))
+
+
+def t_dat_cho_con():
+    s, kg = goi(T['bn2'], f"/dat-lich/khung-gio?ngay={S['kg_bs'][S['kg'][5]][1]}&ma_ck=1")
+    kg_trong = next((k['MaKG'] for k in kg or [] if k['MaKG'] != S['kg'][5]), S['kg'][5])
+    s, d = goi(T['bn2'], '/lich-hen', 'POST', {'ma_kg': kg_trong, 'ly_do': 'Khám cho con (kiểm thử)', 'ma_bn': S['nt_con']})
+    S['lk_con'] = (d or {}).get('ma_lk')
+    s2, ds = goi(T['bn2'], '/lich-hen/cua-toi')
+    lh = next((x for x in ds if x['MaLK'] == S['lk_con']), {})
+    return s == 200 and lh.get('MaBN') == S['nt_con'], f"{s} {d}; lịch hiện trong Lịch hẹn của tôi với người khám {lh.get('BenhNhan')}"
+
+
+tc('NT06', N, 'Đặt lịch cho người thân; lịch hiện trong Lịch hẹn của tôi', t_dat_cho_con)
+tc('NT07', N, 'Đặt lịch cho hồ sơ không thuộc tài khoản bị chặn', lambda: loi(*goi(T['bn2'], '/lich-hen', 'POST',
+    {'ma_kg': S['kg'][5], 'ma_bn': 1}), 404))
+tc('NT08', N, 'Xem hồ sơ sức khỏe của người thân; người khác không xem được', lambda: (lambda a, b: (a[0] == 200 and b[0] == 404, f'người thân {a[0]}, người lạ {b[0]}'))(
+    goi(T['bn2'], f"/ho-so-suc-khoe?ma_bn={S['bn_moi']}"), goi(T['bn2'], '/ho-so-suc-khoe?ma_bn=1')))
+tc('NT09', N, 'Hủy liên kết khi người thân còn lịch hẹn chưa diễn ra bị chặn', lambda: loi(*goi(T['bn2'], f"/nguoi-than/{S['nt_con']}", 'DELETE'), 400, 'lịch hẹn'))
+
+
+def t_huy_lien_ket():
+    a = goi(T['bn2'], f"/lich-hen/{S['lk_con']}/huy", 'POST', {'ly_do': 'Kiểm thử'})[0]
+    b = goi(T['bn2'], f"/nguoi-than/{S['nt_con']}", 'DELETE')[0]
+    c = goi(T['bn2'], f"/nguoi-than/{S['bn_moi']}", 'DELETE')
+    con = [x['MaBN'] for x in goi(T['bn2'], '/nguoi-than')[1]]
+    return a == 200 and b == 200 and c[0] in (200, 400) and S['nt_con'] not in con, f'hủy lịch {a}, hủy liên kết con {b}; còn {len(con)} người thân'
+
+
+tc('NT10', N, 'Hủy lịch rồi hủy liên kết; hồ sơ không còn trong tài khoản', t_huy_lien_ket)
+
+
+def t_chi_so():
+    s, ds = goi(T['bn2'], '/ho-so-suc-khoe/chi-so')
+    ma = {d['Ma']: d for d in ds or []}
+    ha = ma.get('HUYET_AP')
+    xn = [d for d in ds or [] if d['Ma'].startswith('XN_')]
+    ok = s == 200 and ha and ha['Diem'][0].get('GiaTri2') is not None and xn and all('Duoi' in d and 'Tren' in d for d in xn)
+    return ok, f"{s}: {len(ds or [])} dãy ({', '.join(d['Ten'] for d in (ds or [])[:6])}…); huyết áp {len(ha['Diem']) if ha else 0} điểm"
+
+
+tc('CS01', N, 'Dãy chỉ số theo lần khám: huyết áp 2 đường, xét nghiệm kèm khoảng tham chiếu', t_chi_so)
+
+# ===================== 14. Danh gia tu do (khong can sau kham) =====================
+N = '14. Đánh giá tự do'
+
+
+def t_bieu_mau_tu_do():
+    s, d = goi(T['bn2'], '/danh-gia/tu-do')
+    loai = {n['LoaiNhanVien'] for n in d.get('NhanVien', [])}
+    bs_khoa = {n['TenCK'] for n in d.get('NhanVien', []) if n['LoaiNhanVien'] == 'BAC_SI'}
+    S['td_le_tan'] = next((n['MaNV'] for n in d['NhanVien'] if n['LoaiNhanVien'] == 'LE_TAN'), None)
+    S['td_bac_si'] = next((n['MaNV'] for n in d['NhanVien'] if n['LoaiNhanVien'] == 'BAC_SI'), None)
+    return s == 200 and {'LE_TAN', 'BAC_SI'} <= loai and len(d['TieuChi']) == 6, \
+        f"{s}: {len(d['NhanVien'])} nhân viên, nhóm {sorted(loai)}, bác sĩ thuộc {len(bs_khoa)} chuyên khoa"
+
+
+tc('TD01', N, 'Biểu mẫu đánh giá tự do: 6 tiêu chí, danh sách lễ tân và bác sĩ', t_bieu_mau_tu_do)
+tc('TD02', N, 'Gửi trống bị chặn', lambda: loi(*goi(T['bn2'], '/danh-gia/tu-do', 'POST', {'diem_dich_vu': {}, 'nhan_vien': [], 'gop_y': ' '}), 400, 'ít nhất'))
+
+
+def t_gui_tu_do():
+    s, d = goi(T['bn2'], '/danh-gia/tu-do', 'POST', {
+        'diem_dich_vu': {'DiemCoSoVatChat': 4, 'DiemThoiGianCho': 2},
+        'nhan_vien': [{'ma_nv': S['td_le_tan'], 'diem': 5, 'nhan_xet': 'Hướng dẫn tận tình'}, {'ma_nv': S['td_bac_si'], 'diem': 4}],
+        'gop_y': 'Phòng chờ hơi nóng, nên thêm quạt.'})
+    s2, ds = goi(T['bn2'], '/danh-gia/cua-toi')
+    dg = next((x for x in ds['DaDanhGia'] if x['MaDG'] == (d or {}).get('ma_dg')), {})
+    return s == 200 and dg.get('LoaiDanhGia') == 'TU_DO' and len(dg.get('NhanVien', [])) == 2, \
+        f"{s} {d}; đã gửi: {dg.get('LoaiDanhGia')}, chấm {len(dg.get('NhanVien', []))} nhân viên (không cần chấm hết)"
+
+
+tc('TD03', N, 'Gửi đánh giá không cần đã khám: cơ sở vật chất, 1 lễ tân, 1 bác sĩ, góp ý', t_gui_tu_do)
+tc('TD04', N, 'Gửi lần 2 trong 24 giờ bị chặn', lambda: loi(*goi(T['bn2'], '/danh-gia/tu-do', 'POST', {'gop_y': 'Lần 2'}), 400, '24 giờ'))
+tc('TD05', N, 'Báo cáo đánh giá có điểm của lễ tân', lambda: (lambda r: (r[0] == 200 and any(
+    b['MaNV'] == S['td_le_tan'] for b in r[1]['BacSi']), f"{len(r[1]['BacSi'])} nhân viên trong xếp hạng"))(
+    goi(T['admin'], f'/danh-gia/bao-cao?tu_ngay={NGAY}&den_ngay={NGAY}')))
 
 # ===================== 11. Danh gia sau kham, gop y - khieu nai =====================
 N = '11. Đánh giá, góp ý'

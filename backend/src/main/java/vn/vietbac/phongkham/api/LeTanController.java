@@ -19,6 +19,7 @@ import vn.vietbac.phongkham.chung.LoiNghiepVu;
 import vn.vietbac.phongkham.chung.TruyVan;
 import vn.vietbac.phongkham.dichvu.DatLichService;
 import vn.vietbac.phongkham.dichvu.DatLichService.LocLichHen;
+import vn.vietbac.phongkham.dichvu.NguoiThanService;
 import vn.vietbac.phongkham.dichvu.TiepDonService;
 import vn.vietbac.phongkham.xacthuc.CanQuyen;
 import vn.vietbac.phongkham.xacthuc.NguoiDung;
@@ -32,11 +33,13 @@ public class LeTanController {
 
     private final DatLichService datLich;
     private final TiepDonService tiepDon;
+    private final NguoiThanService nguoiThan;
     private final TruyVan tv;
 
-    public LeTanController(DatLichService datLich, TiepDonService tiepDon, TruyVan tv) {
+    public LeTanController(DatLichService datLich, TiepDonService tiepDon, NguoiThanService nguoiThan, TruyVan tv) {
         this.datLich = datLich;
         this.tiepDon = tiepDon;
+        this.nguoiThan = nguoiThan;
         this.tv = tv;
     }
 
@@ -51,7 +54,21 @@ public class LeTanController {
                               @JsonProperty("gioi_tinh") String gioiTinh, String sdt, String cccd,
                               @JsonProperty("dia_chi") String diaChi,
                               @JsonProperty("nguoi_lien_he") String nguoiLienHe,
-                              @JsonProperty("sdt_nguoi_lien_he") String sdtNguoiLienHe) {
+                              @JsonProperty("sdt_nguoi_lien_he") String sdtNguoiLienHe,
+                              @JsonProperty("the_bhyt") TheBhyt theBhyt) {
+    }
+
+    /** Thẻ BHYT lễ tân nhập từ thẻ giấy / ảnh thẻ trên VssID. */
+    public record TheBhyt(@JsonProperty("so_the") String soThe, @JsonProperty("tu_ngay") LocalDate tuNgay,
+                          @JsonProperty("den_ngay") LocalDate denNgay, @JsonProperty("noi_dkkcb") String noiDKKCB,
+                          @JsonProperty("ho_ten_tren_the") String hoTenTrenThe,
+                          @JsonProperty("ngay_sinh_tren_the") LocalDate ngaySinhTrenThe,
+                          @JsonProperty("ngay_du_5_nam") LocalDate ngayDu5Nam,
+                          @JsonProperty("mien_cung_chi_tra_tu") LocalDate mienCungChiTraTu) {
+        TiepDonService.NhapThe sangDichVu() {
+            return new TiepDonService.NhapThe(soThe, tuNgay, denNgay, noiDKKCB, hoTenTrenThe, ngaySinhTrenThe, ngayDu5Nam,
+                    mienCungChiTraTu);
+        }
     }
 
     // ---------- Lịch hẹn ----------
@@ -131,12 +148,42 @@ public class LeTanController {
     @CanQuyen("BENH_NHAN.QUAN_LY")
     public Map<String, Object> themBenhNhan(@RequestBody BenhNhanMoi b, NguoiDung nd) {
         return Map.of("ma_bn", tiepDon.themBenhNhan(b.hoTen(), b.ngaySinh(), b.gioiTinh(), b.sdt(), b.cccd(),
-                b.diaChi(), b.nguoiLienHe(), b.sdtNguoiLienHe(), nd.maTK()));
+                b.diaChi(), b.nguoiLienHe(), b.sdtNguoiLienHe(), b.theBhyt() == null ? null : b.theBhyt().sangDichVu(),
+                nd.maTK()));
     }
 
     @GetMapping("/benh-nhan/{maBN}/the-bhyt")
-    @CanQuyen("TIEP_DON.CHECK_IN")
+    @CanQuyen({"TIEP_DON.CHECK_IN", "BENH_NHAN.QUAN_LY"})
     public List<Map<String, Object>> theBhyt(@PathVariable Integer maBN) {
         return tiepDon.theBhyt(maBN);
+    }
+
+    /** Nhập thẻ mới hoặc cập nhật thẻ (gia hạn, giấy miễn cùng chi trả) cho bệnh nhân đã có hồ sơ. */
+    @PostMapping("/benh-nhan/{maBN}/the-bhyt")
+    @CanQuyen("BENH_NHAN.QUAN_LY")
+    public Map<String, Object> luuTheBhyt(@PathVariable Integer maBN, @RequestBody TheBhyt b, NguoiDung nd) {
+        return Map.of("ma_the", tiepDon.luuThe(maBN, b.sangDichVu(), nd.maTK()));
+    }
+
+    /** UC1.7 5b, UC7.4: liên kết người thân chờ lễ tân xác nhận (hồ sơ không có SĐT nhận OTP). */
+    @GetMapping("/benh-nhan/{maBN}/lien-ket-cho")
+    @CanQuyen({"TIEP_DON.CHECK_IN", "BENH_NHAN.QUAN_LY"})
+    public List<Map<String, Object>> lienKetCho(@PathVariable Integer maBN) {
+        return nguoiThan.choLeTan(maBN);
+    }
+
+    /** Lễ tân đối chiếu giấy tờ của người khám rồi xác nhận liên kết vào tài khoản quản lý (maTK). */
+    @PostMapping("/benh-nhan/{maBN}/lien-ket/{maTK}/xac-nhan")
+    @CanQuyen({"TIEP_DON.CHECK_IN", "BENH_NHAN.QUAN_LY"})
+    public Map<String, Object> xacNhanLienKet(@PathVariable Integer maBN, @PathVariable Integer maTK, NguoiDung nd) {
+        nguoiThan.leTanXacNhan(maTK, maBN, nd.maTK());
+        return XacThucController.OK;
+    }
+
+    /** Cổng giám định giả lập: kiểm tra định dạng 15 ký tự, giải mã 4 ô, xem thẻ đã có trên cổng chưa. */
+    @GetMapping("/bhyt/tra-cuu")
+    @CanQuyen({"TIEP_DON.CHECK_IN", "BENH_NHAN.QUAN_LY"})
+    public Map<String, Object> traCuuThe(@RequestParam("so_the") String soThe) {
+        return tiepDon.traCuuThe(soThe);
     }
 }

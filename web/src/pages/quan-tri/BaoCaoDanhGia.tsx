@@ -81,7 +81,7 @@ export default function BaoCaoDanhGia() {
   const maxChuDe = Math.max(1, ...(kq?.ChuDe ?? []).map((c) => Number(c.TichCuc) + Number(c.TrungTinh) + Number(c.TieuCuc)))
 
   const cotBacSi: TableColumnsType<BaoCao['BacSi'][number]> = [
-    { title: 'Bác sĩ', key: 'bs', render: (_, r) => <div>{r.HoTen}<div><Typography.Text type="secondary" style={{ fontSize: 12 }}>{r.TenCK}</Typography.Text></div></div> },
+    { title: 'Nhân viên', key: 'bs', render: (_, r) => <div>{r.HoTen}<div><Typography.Text type="secondary" style={{ fontSize: 12 }}>{r.TenCK ?? (r.LoaiNhanVien === 'LE_TAN' ? 'Lễ tân' : r.LoaiNhanVien === 'BAC_SI' || !r.LoaiNhanVien ? '' : 'Cận lâm sàng')}</Typography.Text></div></div> },
     { title: 'Số đánh giá', dataIndex: 'SoDanhGia', align: 'right' },
     { title: 'Điểm TB', dataIndex: 'DiemBacSi', align: 'right', render: (v) => `${so2(v)} ★` },
     { title: 'Tiêu cực', dataIndex: 'TieuCuc', align: 'right' },
@@ -89,7 +89,7 @@ export default function BaoCaoDanhGia() {
 
   const xuatCsv = () => kq && taiCsv(`bao-cao-danh-gia-${khoang[0].format('YYYYMMDD')}-${khoang[1].format('YYYYMMDD')}.csv`, [
     { ten: 'Bác sĩ', lay: (r: BaoCao['BacSi'][number]) => r.HoTen },
-    { ten: 'Chuyên khoa', lay: (r) => r.TenCK ?? '' },
+    { ten: 'Chuyên khoa / bộ phận', lay: (r) => r.TenCK ?? (r.LoaiNhanVien === 'LE_TAN' ? 'Lễ tân' : '') },
     { ten: 'Số đánh giá', lay: (r) => r.SoDanhGia },
     { ten: 'Điểm trung bình', lay: (r) => r.DiemBacSi ?? '' },
     { ten: 'Đánh giá tiêu cực', lay: (r) => r.TieuCuc },

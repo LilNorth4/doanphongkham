@@ -1,4 +1,4 @@
-import { CalendarOutlined, ClockCircleOutlined, EnvironmentOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons'
+import { CalendarOutlined, ClockCircleOutlined, EnvironmentOutlined, PlusOutlined, TeamOutlined, UserOutlined } from '@ant-design/icons'
 import {
   Alert, App, Badge, Button, Card, Empty, Flex, Form, Input, Modal, Radio, Segmented, Skeleton, Space, Tabs, Tag,
   Tooltip, Typography, theme,
@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api, LoiApi, type DangKyCho, type KhungGio, type LichHen } from '@/lib/api'
 import ChonKhungGio from '@/components/ChonKhungGio'
+import ChonNguoiKham, { useNguoiKham } from '@/components/ChonNguoiKham'
 import {
   coTheHuyDoi, gioKham, LICH_CON_HIEU_LUC, PHUT_HUY_SAU_KHI_DAT, TEN_BUOI, TEN_KENH, thuNgay, TRANG_THAI_LICH_HEN,
 } from '@/lib/hangSo'
@@ -30,7 +31,7 @@ function ONgay({ ngay, mo }: { ngay: string; mo?: boolean }) {
   )
 }
 
-function TheLichHen({ lh, onDoi, onHuy }: { lh: LichHen; onDoi?: () => void; onHuy?: () => void }) {
+function TheLichHen({ lh, onDoi, onHuy, nguoiThan }: { lh: LichHen; onDoi?: () => void; onHuy?: () => void; nguoiThan?: string }) {
   const tt = TRANG_THAI_LICH_HEN[lh.TrangThai]
   const quyen = coTheHuyDoi(lh)
   const lyDoKhoa = !quyen.du4Gio ? 'Chỉ được hủy/đổi trước giờ khám ít nhất 4 giờ' : undefined
@@ -51,6 +52,7 @@ function TheLichHen({ lh, onDoi, onHuy }: { lh: LichHen; onDoi?: () => void; onH
             </Typography.Text>
             <Tag color={tt.mau}>{tt.ten}</Tag>
             {lh.SoThuTu && <Tag color="cyan">STT {lh.SoThuTu}</Tag>}
+            {nguoiThan && <Tag icon={<TeamOutlined />} color="purple">{nguoiThan}</Tag>}
           </Flex>
           <div style={{ marginTop: 6 }}>
             <UserOutlined /> {lh.BacSi} · <Typography.Text type="secondary">{lh.TenCK}</Typography.Text>
@@ -133,6 +135,13 @@ export default function LichHenCuaToi() {
   const [params, setParams] = useSearchParams()
   const tab = params.get('tab') ?? 'sap-toi'
   const [ds, setDs] = useState<LichHen[] | null>(null)
+  // UC1.7: lịch của bản thân và người thân, lọc theo người khám (undefined = tất cả)
+  const dsNguoiKham = useNguoiKham()
+  const [locBn, setLocBn] = useState<number>()
+  const nhanNguoiThan = (maBn: number | null) => {
+    const n = dsNguoiKham.find((x) => x.MaBN === maBn)
+    return n?.QuanHe ? `${n.HoTen} (${n.QuanHe})` : undefined
+  }
   const [cho, setCho] = useState<DangKyCho[]>([])
   const [bayGio, setBayGio] = useState(dayjs())
   const [lhHuy, setLhHuy] = useState<LichHen | null>(null)
@@ -180,9 +189,10 @@ export default function LichHenCuaToi() {
     }
   }
 
-  const sapToi = (ds ?? []).filter((l) => LICH_CON_HIEU_LUC.includes(l.TrangThai))
+  const dsLoc = (ds ?? []).filter((l) => !locBn || l.MaBN === locBn)
+  const sapToi = dsLoc.filter((l) => LICH_CON_HIEU_LUC.includes(l.TrangThai))
     .sort((a, b) => gioKham(a).valueOf() - gioKham(b).valueOf())
-  const lichSu = (ds ?? []).filter((l) => !LICH_CON_HIEU_LUC.includes(l.TrangThai))
+  const lichSu = dsLoc.filter((l) => !LICH_CON_HIEU_LUC.includes(l.TrangThai))
   const choHieuLuc = cho.filter((d) => d.TrangThai === 'DANG_CHO' || d.TrangThai === 'DANG_DUOC_MOI')
 
   const danhSach = (items: LichHen[], rong: string) => ds === null ? <Skeleton active /> : items.length === 0
@@ -190,7 +200,7 @@ export default function LichHenCuaToi() {
     : (
       <Flex vertical gap={12}>
         {items.map((lh) => (
-          <TheLichHen key={lh.MaLK} lh={lh}
+          <TheLichHen key={lh.MaLK} lh={lh} nguoiThan={nhanNguoiThan(lh.MaBN)}
             onDoi={() => { setKgMoi(null); setCungBacSi(true); setLhDoi(lh) }}
             onHuy={() => { formHuy.resetFields(); setLhHuy(lh) }} />
         ))}
@@ -201,8 +211,9 @@ export default function LichHenCuaToi() {
     <Card>
       <Flex justify="space-between" align="center" wrap gap={12}>
         <Typography.Title level={4} style={{ margin: 0 }}>Lịch hẹn của tôi</Typography.Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/dat-lich')}>Đặt lịch mới</Button>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate(locBn ? `/dat-lich?ma_bn=${locBn}` : '/dat-lich')}>Đặt lịch mới</Button>
       </Flex>
+      <div style={{ marginTop: 12 }}><ChonNguoiKham ds={dsNguoiKham} value={locBn} onChange={setLocBn} choPhepTatCa /></div>
       {dangMoi && tab !== 'cho' && (
         <Alert type="success" showIcon style={{ marginTop: 16 }} title="Có khung giờ trống đang được giữ cho bạn!"
           action={<Button size="small" type="primary" onClick={() => setParams({ tab: 'cho' })}>Xem ngay</Button>} />

@@ -5,7 +5,7 @@ import {
 import {
   Alert, App, Badge, Button, Card, Checkbox, Col, Collapse, Descriptions, Drawer, Empty, Flex, Form, Input,
   InputNumber, Modal, Radio, Result, Row, Skeleton, Space, Table, Tabs, Tag, Tooltip, Typography, Upload,
-  type TableProps, type UploadFile,
+  type TableProps,
 } from 'antd'
 import dayjs from 'dayjs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -277,7 +277,6 @@ function NhapKetQua({ maPcd, onDong, onXong }: { maPcd: number; onDong: () => vo
   const nho = useManHinhNho()
   const [form] = Form.useForm<GiaTriKetQua>()
   const [p, setP] = useState<ChiTietPhieuCls | null>(null)
-  const [tepCho, setTepCho] = useState<UploadFile[]>([])
   const [dangGui, setDangGui] = useState(false)
   const chiSo = Form.useWatch('chi_so', form)
   const coSinhThiet = Form.useWatch('co_sinh_thiet', form)
@@ -329,16 +328,7 @@ function NhapKetQua({ maPcd, onDong, onXong }: { maPcd: number; onDong: () => vo
     try {
       if (dieuChinh) await api.capNhatKetQuaCls(p.MaPCD, { ...b, ly_do_dieu_chinh: v.ly_do_dieu_chinh?.trim() })
       else await api.traKetQuaCls(p.MaPCD, b)
-      let loiTep = 0
-      for (const f of tepCho) {
-        try {
-          await api.themTepCls(p.MaPCD, f.originFileObj as File)
-        } catch {
-          loiTep++
-        }
-      }
-      if (loiTep) message.warning(`Đã lưu kết quả nhưng ${loiTep} tệp tải lên thất bại, hãy thử lại trong mục Tệp đính kèm`)
-      else message.success(dieuChinh ? 'Đã điều chỉnh kết quả' : 'Đã trả kết quả cho bác sĩ chỉ định')
+      message.success(dieuChinh ? 'Đã điều chỉnh kết quả' : 'Đã trả kết quả, bác sĩ chỉ định đã nhận thông báo')
       onXong()
     } catch (e) {
       message.error(e instanceof LoiApi ? e.message : 'Không lưu được kết quả')
@@ -361,7 +351,7 @@ function NhapKetQua({ maPcd, onDong, onXong }: { maPcd: number; onDong: () => vo
     if (!p) return
     try {
       await api.themTepCls(p.MaPCD, f)
-      message.success('Đã thêm tệp')
+      message.success(dieuChinh ? 'Đã bổ sung tệp, bác sĩ chỉ định đã nhận thông báo' : 'Đã tải lên')
       tai()
     } catch (e) {
       message.error(e instanceof LoiApi ? e.message : 'Không tải được tệp')
@@ -373,14 +363,17 @@ function NhapKetQua({ maPcd, onDong, onXong }: { maPcd: number; onDong: () => vo
       message.error('Chỉ nhận ảnh JPG, PNG hoặc tệp PDF')
       return false
     }
-    if (f.size > 10 * 1024 * 1024) {
-      message.error('Tệp tối đa 10 MB')
+    if (f.size > 20 * 1024 * 1024) {
+      message.error('Tệp tối đa 20 MB')
       return false
     }
     return true
   }
 
   const lichSu = useMemo(() => kq?.LichSu ?? [], [kq])
+  // Ảnh / PDF tải lên ngay khi đang thực hiện (UC9.3, UC9.4); chẩn đoán hình ảnh, nội soi bắt buộc có ảnh mới trả được
+  const tep = p?.Tep ?? []
+  const batBuocAnh = p?.LoaiDV === 'CDHA' || p?.LoaiDV === 'NOI_SOI'
 
   return (
     <Drawer open onClose={onDong} size={nho ? '100%' : 760} destroyOnHidden
@@ -507,21 +500,23 @@ function NhapKetQua({ maPcd, onDong, onXong }: { maPcd: number; onDong: () => vo
 
           <div>
             <Typography.Title level={5}>Tệp đính kèm</Typography.Title>
-            {kq && kq.Tep.length > 0 && <DsTep ds={kq.Tep} onXoa={chiXem ? undefined : xoaTep} />}
-            {!chiXem && (dieuChinh ? (
-              <Upload accept=".jpg,.jpeg,.png,.pdf" showUploadList={false} disabled={kq!.Tep.length >= 10}
+            {!chiXem && batBuocAnh && tep.length === 0 && (
+              <Alert type="warning" showIcon style={{ marginBottom: 8 }}
+                title={`Cần tải lên ít nhất một ảnh ${p?.LoaiDV === 'NOI_SOI' ? 'nội soi' : 'chụp'} trước khi trả kết quả`} />
+            )}
+            {tep.length > 0 && <DsTep ds={tep} onXoa={chiXem ? undefined : xoaTep} />}
+            {!chiXem && (
+              <Upload accept=".jpg,.jpeg,.png,.pdf" multiple showUploadList={false} disabled={tep.length >= 10}
                 beforeUpload={(f) => { if (kiemTraTep(f)) themTepNgay(f); return false }}>
-                <Button icon={<UploadOutlined />} disabled={kq!.Tep.length >= 10} style={{ marginTop: 8 }}>Thêm ảnh / PDF</Button>
+                <Button icon={<UploadOutlined />} disabled={tep.length >= 10} style={{ marginTop: 8 }}>
+                  {dieuChinh ? 'Bổ sung ảnh / PDF' : 'Tải ảnh / PDF lên'}
+                </Button>
+                <Typography.Text type="secondary" style={{ marginInlineStart: 8, fontSize: 12 }}>
+                  JPG, PNG, PDF · tối đa 10 tệp, mỗi tệp 20 MB · bác sĩ chỉ định và bệnh nhân xem được sau khi trả kết quả
+                </Typography.Text>
               </Upload>
-            ) : (
-              <Upload accept=".jpg,.jpeg,.png,.pdf" multiple fileList={tepCho} listType="picture"
-                beforeUpload={(f) => { if (kiemTraTep(f)) setTepCho((ds) => [...ds, { uid: f.uid, name: f.name, originFileObj: f, status: 'done' } as UploadFile].slice(0, 10)); return false }}
-                onRemove={(f) => setTepCho((ds) => ds.filter((x) => x.uid !== f.uid))}>
-                <Button icon={<UploadOutlined />}>Chọn ảnh / PDF</Button>
-                <Typography.Text type="secondary" style={{ marginInlineStart: 8, fontSize: 12 }}>Tải lên khi trả kết quả · tối đa 10 tệp, mỗi tệp 10 MB</Typography.Text>
-              </Upload>
-            ))}
-            {chiXem && (!kq || kq.Tep.length === 0) && <Typography.Text type="secondary">Không có tệp</Typography.Text>}
+            )}
+            {chiXem && tep.length === 0 && <Typography.Text type="secondary">Không có tệp</Typography.Text>}
           </div>
 
           {lichSu.length > 0 && (

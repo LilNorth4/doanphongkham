@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import tools.jackson.databind.ObjectMapper;
+import vn.vietbac.phongkham.chung.BaoHiemYTe;
 import vn.vietbac.phongkham.chung.ChuanHoa;
 import vn.vietbac.phongkham.chung.DongHo;
 import vn.vietbac.phongkham.chung.LoiNghiepVu;
@@ -62,7 +63,7 @@ public class TiepDonService {
      */
     @Transactional
     public Integer themBenhNhan(String hoTen, LocalDate ngaySinh, String gioiTinh, String sdt, String cccd,
-                                String diaChi, String nguoiLienHe, String sdtNguoiLienHe, Integer maTK) {
+                                String diaChi, String nguoiLienHe, String sdtNguoiLienHe, NhapThe the, Integer maTK) {
         String ten = ChuanHoa.hoTen(hoTen);
         if (ten.isEmpty()) {
             throw new LoiNghiepVu("Vui lòng nhập họ tên bệnh nhân");
@@ -86,42 +87,167 @@ public class TiepDonService {
                 dongHo.bayGio());
         int maBN = ((Number) tv.giaTri("SELECT LAST_INSERT_ID()")).intValue();
         nhatKy.ghi(maTK, "TAO_HO_SO_BENH_NHAN", "BenhNhan", maBN, ten + ", SĐT " + soDt);
+        // Lễ tân nhập luôn thẻ BHYT lúc đăng ký; thẻ sai thì cả hồ sơ không được tạo để nhập lại một lần
+        if (the != null && rong(the.soThe()) != null) {
+            luuThe(maBN, the, maTK);
+        }
         return maBN;
     }
 
+    /** Thẻ của bệnh nhân, mới nhất trước, kèm giải mã 4 ô và trạng thái hạn thẻ hôm nay. */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> theBhyt(Integer maBN) {
-        return tv.ds("SELECT * FROM TheBHYT WHERE MaBN = ? ORDER BY NgayHetHan DESC", maBN);
+        List<Map<String, Object>> ds = tv.ds("SELECT * FROM TheBHYT WHERE MaBN = ? ORDER BY NgayHetHan DESC", maBN);
+        LocalDate homNay = dongHo.homNay();
+        for (Map<String, Object> t : ds) {
+            String doiTuong = (String) t.get("MaDoiTuong");
+            t.put("TenDoiTuong", BaoHiemYTe.TEN_DOI_TUONG.getOrDefault(doiTuong, "Mã đối tượng " + doiTuong));
+            t.put("ConHan", !homNay.isBefore((LocalDate) t.get("NgayBatDau")) && !homNay.isAfter((LocalDate) t.get("NgayHetHan")));
+            t.put("MienCungChiTra", mienCungChiTra(t, homNay));
+        }
+        return ds;
     }
 
-    /** Kết quả giám định thẻ; maThe chỉ có khi thẻ có trong hệ thống (cột LuotKham.MaThe là khóa ngoại). */
-    record KetQuaBhyt(String trangThai, Integer mucHuong, String lyDo, String maThe) {
+    /** Thông tin lễ tân nhập từ thẻ giấy / ảnh thẻ trên VssID. Họ tên, ngày sinh trên thẻ bỏ trống = lấy theo hồ sơ. */
+    public record NhapThe(String soThe, LocalDate ngayBatDau, LocalDate ngayHetHan, String noiDKKCB,
+                          String hoTenTrenThe, LocalDate ngaySinhTrenThe, LocalDate ngayDu5Nam, LocalDate mienCungChiTraTu) {
     }
 
-    /** BR08: thẻ còn hạn tại ngày khám, trùng họ tên và ngày sinh với hồ sơ. Cổng giám định mô phỏng bằng bảng TheBHYT. */
+    /**
+     * Cổng giám định BHYT giả lập: kiểm tra định dạng, giải mã 4 ô; thẻ đã có trên cổng (bảng TheBHYT) thì trả kèm
+     * thông tin đã đăng ký. Thẻ thật cần tra cổng BHXH, ở đây chưa kết nối.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> traCuuThe(String soThe) {
+        BaoHiemYTe.The the = BaoHiemYTe.giaiMa(soThe);
+        Map<String, Object> kq = new LinkedHashMap<>();
+        kq.put("MaThe", the.maThe());
+        kq.put("MaDoiTuong", the.doiTuong());
+        kq.put("TenDoiTuong", the.tenDoiTuong());
+        kq.put("MaMucHuong", the.maMuc());
+        kq.put("MucHuong", the.tyLe());
+        kq.put("MaTinh", the.maTinh());
+        kq.put("MaSoBHXH", the.maSoBhxh());
+        kq.put("CoCungChiTra", BaoHiemYTe.coCungChiTra(the.maMuc()));
+        Map<String, Object> daCo = tv.mot("""
+                SELECT t.*, bn.HoTen FROM TheBHYT t JOIN BenhNhan bn ON bn.MaBN = t.MaBN
+                WHERE t.MaThe = ? OR t.MaSoBHXH = ? ORDER BY t.MaThe = ? DESC, t.NgayHetHan DESC LIMIT 1""",
+                the.maThe(), the.maSoBhxh(), the.maThe());
+        kq.put("TrenCong", daCo);
+        return kq;
+    }
+
+    /**
+     * Lễ tân nhập / cập nhật thẻ cho bệnh nhân (khi đăng ký hồ sơ hoặc khi bệnh nhân mang thẻ mới).
+     * Một mã số BHXH chỉ thuộc một bệnh nhân; mức hưởng lấy theo ô 2, không nhập tay.
+     */
+    @Transactional
+    public String luuThe(Integer maBN, NhapThe b, Integer maTK) {
+        Map<String, Object> bn = tv.mot("SELECT HoTen, NgaySinh FROM BenhNhan WHERE MaBN = ?", maBN);
+        if (bn == null) {
+            throw new LoiNghiepVu("Không tìm thấy bệnh nhân");
+        }
+        BaoHiemYTe.The the = BaoHiemYTe.giaiMa(b.soThe());
+        if (b.ngayBatDau() == null || b.ngayHetHan() == null) {
+            throw new LoiNghiepVu("Nhập giá trị sử dụng của thẻ (từ ngày, đến ngày)");
+        }
+        if (b.ngayHetHan().isBefore(b.ngayBatDau())) {
+            throw new LoiNghiepVu("Ngày hết hạn thẻ phải sau ngày bắt đầu");
+        }
+        String chuKhac = tv.giaTri("""
+                SELECT bn.HoTen FROM TheBHYT t JOIN BenhNhan bn ON bn.MaBN = t.MaBN
+                WHERE (t.MaThe = ? OR t.MaSoBHXH = ?) AND t.MaBN <> ?""", the.maThe(), the.maSoBhxh(), maBN);
+        if (chuKhac != null) {
+            throw new LoiNghiepVu("Mã số BHXH " + the.maSoBhxh() + " đã gắn với hồ sơ " + chuKhac + ". Kiểm tra lại số thẻ");
+        }
+        LocalDate ngaySinh = b.ngaySinhTrenThe() != null ? b.ngaySinhTrenThe() : (LocalDate) bn.get("NgaySinh");
+        if (ngaySinh == null) {
+            throw new LoiNghiepVu("Hồ sơ chưa có ngày sinh, nhập ngày sinh in trên thẻ");
+        }
+        String hoTen = rong(b.hoTenTrenThe()) != null ? ChuanHoa.hoTen(b.hoTenTrenThe()) : (String) bn.get("HoTen");
+        if (b.mienCungChiTraTu() != null && !BaoHiemYTe.coCungChiTra(the.maMuc())) {
+            throw new LoiNghiepVu("Thẻ mức hưởng " + the.maMuc() + " đã được trả 100%, không cần giấy miễn cùng chi trả");
+        }
+        boolean daCo = tv.dem("SELECT COUNT(*) FROM TheBHYT WHERE MaThe = ?", the.maThe()) > 0;
+        if (daCo) {
+            tv.capNhat("""
+                    UPDATE TheBHYT SET HoTenTrenThe = ?, NgaySinhTrenThe = ?, NoiDKKCB = ?, NgayBatDau = ?, NgayHetHan = ?,
+                           MucHuong = ?, NgayDu5NamLienTuc = ?, MienCungChiTraTu = ?, MaTKCapNhat = ? WHERE MaThe = ?""",
+                    hoTen, ngaySinh, rong(b.noiDKKCB()), b.ngayBatDau(), b.ngayHetHan(), the.tyLe(), b.ngayDu5Nam(),
+                    b.mienCungChiTraTu(), maTK, the.maThe());
+        } else {
+            tv.capNhat("""
+                    INSERT INTO TheBHYT (MaThe, MaSoBHXH, MaBN, HoTenTrenThe, NgaySinhTrenThe, NoiDKKCB, NgayBatDau, NgayHetHan,
+                           MucHuong, NgayDu5NamLienTuc, MienCungChiTraTu, MaTKCapNhat)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    the.maThe(), the.maSoBhxh(), maBN, hoTen, ngaySinh, rong(b.noiDKKCB()), b.ngayBatDau(), b.ngayHetHan(),
+                    the.tyLe(), b.ngayDu5Nam(), b.mienCungChiTraTu(), maTK);
+        }
+        nhatKy.ghi(maTK, daCo ? "SUA_THE_BHYT" : "THEM_THE_BHYT", "BenhNhan", maBN, bn.get("HoTen") + ": thẻ "
+                + the.maThe() + ", mức hưởng " + the.maMuc() + " (" + the.tyLe() + "%), hạn " + b.ngayHetHan().format(NGAY));
+        return the.maThe();
+    }
+
+    /** Giấy miễn cùng chi trả còn hiệu lực tại ngày khám: từ ngày ghi trên giấy đến hết 31/12 năm đó. */
+    private static boolean mienCungChiTra(Map<String, Object> the, LocalDate ngay) {
+        return the.get("MienCungChiTraTu") instanceof LocalDate tu && !ngay.isBefore(tu) && ngay.getYear() == tu.getYear();
+    }
+
+    /**
+     * Kết quả giám định thẻ; maThe chỉ có khi thẻ có trong hệ thống (cột LuotKham.MaThe là khóa ngoại).
+     * mucHuong là tỷ lệ quỹ trả (%), maMuc là ô 2 của thẻ (5 = trả cả ngoài phạm vi), mien = có giấy miễn cùng chi trả.
+     */
+    record KetQuaBhyt(String trangThai, Integer mucHuong, String lyDo, String maThe, Integer maMuc, boolean mien) {
+        KetQuaBhyt(String trangThai, String lyDo, String maThe) {
+            this(trangThai, null, lyDo, maThe, null, false);
+        }
+    }
+
+    /** BR08: thẻ còn hạn tại ngày khám, trùng họ tên và ngày sinh với hồ sơ. Cổng giám định giả lập bằng bảng TheBHYT. */
     KetQuaBhyt kiemTraBhyt(String maThe, Integer maBN, LocalDate ngayKham) {
+        String soThe = BaoHiemYTe.chuanHoa(maThe);
+        if (soThe.length() == 15) {
+            try {
+                BaoHiemYTe.giaiMa(soThe);
+            } catch (LoiNghiepVu e) {
+                return new KetQuaBhyt("KHONG_HOP_LE", e.getMessage(), null);
+            }
+        } else if (!soThe.matches("\\d{10}")) {
+            return new KetQuaBhyt("KHONG_HOP_LE", "Nhập số thẻ 15 ký tự hoặc mã số BHXH 10 số", null);
+        }
         Map<String, Object> the = tv.mot("""
-                SELECT t.MaThe, t.MaBN, t.NgayBatDau, t.NgayHetHan, t.MucHuong, t.HoTenTrenThe, t.NgaySinhTrenThe,
-                       bn.HoTen, bn.NgaySinh
-                FROM TheBHYT t JOIN BenhNhan bn ON bn.MaBN = t.MaBN WHERE t.MaThe = ? OR t.MaSoBHXH = ?""",
-                maThe, maThe);
+                SELECT t.MaThe, t.MaBN, t.NgayBatDau, t.NgayHetHan, t.MucHuong, t.MaMucHuong, t.MienCungChiTraTu,
+                       t.HoTenTrenThe, t.NgaySinhTrenThe, bn.HoTen, bn.NgaySinh
+                FROM TheBHYT t JOIN BenhNhan bn ON bn.MaBN = t.MaBN WHERE t.MaThe = ? OR t.MaSoBHXH = ?
+                ORDER BY t.NgayHetHan DESC LIMIT 1""",
+                soThe, soThe);
         if (the == null) {
-            return new KetQuaBhyt("KHONG_HOP_LE", null, "Không tìm thấy thẻ", null);
+            return new KetQuaBhyt("KHONG_HOP_LE", "Không tìm thấy thẻ trên cổng giám định (giả lập). Nhập thẻ cho bệnh nhân trước", null);
         }
         String ma = (String) the.get("MaThe");
         if (!maBN.equals(the.get("MaBN"))) {
-            return new KetQuaBhyt("KHONG_HOP_LE", null, "Thẻ không thuộc bệnh nhân này", null);
+            return new KetQuaBhyt("KHONG_HOP_LE", "Thẻ không thuộc bệnh nhân này", null);
         }
+        LocalDate batDau = (LocalDate) the.get("NgayBatDau");
         LocalDate hetHan = (LocalDate) the.get("NgayHetHan");
-        if (ngayKham.isBefore((LocalDate) the.get("NgayBatDau")) || ngayKham.isAfter(hetHan)) {
-            return new KetQuaBhyt("KHONG_HOP_LE", null, "Thẻ hết hạn ngày " + hetHan.format(NGAY), ma);
+        if (ngayKham.isBefore(batDau)) {
+            return new KetQuaBhyt("KHONG_HOP_LE", "Thẻ có giá trị từ ngày " + batDau.format(NGAY), ma);
+        }
+        if (ngayKham.isAfter(hetHan)) {
+            return new KetQuaBhyt("KHONG_HOP_LE", "Thẻ hết hạn ngày " + hetHan.format(NGAY), ma);
         }
         if (!((String) the.get("HoTenTrenThe")).equalsIgnoreCase((String) the.get("HoTen"))
                 || !the.get("NgaySinhTrenThe").equals(the.get("NgaySinh"))) {
-            return new KetQuaBhyt("KHONG_HOP_LE", null, "Họ tên hoặc ngày sinh không trùng khớp hồ sơ", ma);
+            return new KetQuaBhyt("KHONG_HOP_LE", "Họ tên hoặc ngày sinh không trùng khớp hồ sơ", ma);
         }
-        int muc = ((Number) the.get("MucHuong")).intValue();
-        return new KetQuaBhyt("HOP_LE", muc, "Thẻ hợp lệ, mức hưởng " + muc + "%", ma);
+        int maMuc = ((Number) the.get("MaMucHuong")).intValue();
+        int tyLe = ((Number) the.get("MucHuong")).intValue();
+        if (BaoHiemYTe.coCungChiTra(maMuc) && mienCungChiTra(the, ngayKham)) {
+            return new KetQuaBhyt("HOP_LE", 100, "Thẻ hợp lệ, mức " + maMuc + " (" + tyLe + "%), có giấy miễn cùng chi trả: hưởng 100%",
+                    ma, maMuc, true);
+        }
+        return new KetQuaBhyt("HOP_LE", tyLe, "Thẻ hợp lệ, mức " + maMuc + ": hưởng " + tyLe + "%"
+                + (maMuc == 5 ? " kể cả chi phí ngoài phạm vi BHYT" : ""), ma, maMuc, false);
     }
 
     // ================= Check-in, vắng mặt =================
@@ -141,7 +267,7 @@ public class TiepDonService {
         }
         Integer maBN = (Integer) lk.get("MaBN");
         Integer maBS = (Integer) lk.get("MaBS");
-        KetQuaBhyt bhyt = rong(maThe) == null ? new KetQuaBhyt("KHONG_CO", null, null, null)
+        KetQuaBhyt bhyt = rong(maThe) == null ? new KetQuaBhyt("KHONG_CO", null, null)
                 : kiemTraBhyt(maThe.strip(), maBN, ngayKham);
 
         // Khóa hàng đợi của bác sĩ trong ngày để 2 lễ tân không cấp trùng số
@@ -151,9 +277,10 @@ public class TiepDonService {
         int stt = ((Number) so.get("stt")).intValue();
         tv.capNhat("""
                 UPDATE LuotKham SET TrangThai = 'DA_CHECK_IN', ThoiDiemCheckIn = ?, MaLeTanCheckIn = ?, SoThuTu = ?,
-                       ThuTuHangCho = ?, MaThe = ?, TrangThaiBHYT = ?, MucHuong = ?
+                       ThuTuHangCho = ?, MaThe = ?, TrangThaiBHYT = ?, MucHuong = ?, MaMucHuong = ?, MienCungChiTra = ?
                 WHERE MaLK = ?""",
-                bayGio, maNVLeTan, stt, so.get("vt"), bhyt.maThe(), bhyt.trangThai(), bhyt.mucHuong(), maLK);
+                bayGio, maNVLeTan, stt, so.get("vt"), bhyt.maThe(), bhyt.trangThai(), bhyt.mucHuong(), bhyt.maMuc(),
+                bhyt.mien(), maLK);
         taoTomTatTienSu(maLK, maBN);
         capNhatThoiGianCho(maBS);
         nhatKy.ghi(maTK, "CHECK_IN", "LuotKham", maLK, lk.get("MaLichHen") + " - "
@@ -164,6 +291,7 @@ public class TiepDonService {
         kq.put("so_thu_tu", stt);
         kq.put("TrangThaiBHYT", bhyt.trangThai());
         kq.put("MucHuong", bhyt.mucHuong());
+        kq.put("MaMucHuong", bhyt.maMuc());
         kq.put("ly_do_bhyt", bhyt.lyDo());
         return kq;
     }

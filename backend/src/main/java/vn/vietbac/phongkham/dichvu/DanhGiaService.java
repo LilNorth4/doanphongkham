@@ -54,6 +54,25 @@ public class DanhGiaService {
     public record DanhGiaNhap(Integer diemBacSi, String nhanXetBacSi, Map<String, Integer> diemDichVu, String nhanXetDichVu) {
     }
 
+    /** Điểm một nhân viên (lễ tân, bác sĩ) trong đánh giá tự do. */
+    public record DiemNhanVien(Integer maNV, Integer diem, String nhanXet) {
+    }
+
+    /** Đánh giá tự do: tiêu chí dịch vụ, điểm từng nhân viên, góp ý; mục nào bỏ trống cũng được. */
+    public record DanhGiaTuDo(Map<String, Integer> diemDichVu, List<DiemNhanVien> nhanVien, String gopY) {
+    }
+
+    /** Loại nhân viên bệnh nhân được đánh giá và tên nhóm hiển thị. */
+    public static final Map<String, String> NHOM_NHAN_VIEN = new LinkedHashMap<>();
+
+    static {
+        NHOM_NHAN_VIEN.put("LE_TAN", "Lễ tân");
+        NHOM_NHAN_VIEN.put("BAC_SI", "Bác sĩ khám bệnh");
+        NHOM_NHAN_VIEN.put("BS_XET_NGHIEM", "Bác sĩ xét nghiệm");
+        NHOM_NHAN_VIEN.put("BS_CDHA", "Bác sĩ chẩn đoán hình ảnh");
+        NHOM_NHAN_VIEN.put("BS_NOI_SOI", "Bác sĩ nội soi");
+    }
+
     private final ThongBaoService thongBao;
     private final NhatKyService nhatKy;
     private final LuuAnh luuAnh;
@@ -89,7 +108,7 @@ public class DanhGiaService {
                 ORDER BY hd.NgayThanhToan""", maBN, bayGio.minusDays(HAN_NGAY));
         List<Map<String, Object>> daGui = tv.ds("""
                 SELECT dg.*, lk.MaLichHen, lk.NgayKham, bs.HoTen AS BacSi, ck.TenCK
-                FROM DanhGia dg JOIN LuotKham lk ON lk.MaLK = dg.MaLK JOIN NhanVien bs ON bs.MaNV = dg.MaBS
+                FROM DanhGia dg LEFT JOIN LuotKham lk ON lk.MaLK = dg.MaLK LEFT JOIN NhanVien bs ON bs.MaNV = dg.MaBS
                 LEFT JOIN ChuyenKhoa ck ON ck.MaCK = bs.MaCK
                 WHERE dg.MaBN = ? ORDER BY dg.ThoiGian DESC""", maBN);
         daGui.forEach(this::kemAnh);
@@ -161,6 +180,90 @@ public class DanhGiaService {
         return Map.of("ma_dg", maDG);
     }
 
+    // ================= Đánh giá tự do (không cần sau khám) =================
+
+    /** Biểu mẫu đánh giá tự do: tiêu chí dịch vụ và danh sách lễ tân, bác sĩ đang làm việc theo nhóm. */
+    @Transactional(readOnly = true)
+    public Map<String, Object> bieuMauTuDo() {
+        Map<String, Object> kq = new LinkedHashMap<>();
+        kq.put("TieuChi", TIEU_CHI);
+        kq.put("NhomNhanVien", NHOM_NHAN_VIEN);
+        kq.put("NhanVien", tv.ds("""
+                SELECT nv.MaNV, nv.HoTen, nv.LoaiNhanVien, nv.HocHamHocVi, nv.AnhDaiDien, nv.DiemDanhGiaTB, nv.SoLuotDanhGia,
+                       ck.TenCK, p.MaSoPhong
+                FROM NhanVien nv JOIN TaiKhoan tk ON tk.MaTK = nv.MaTK LEFT JOIN ChuyenKhoa ck ON ck.MaCK = nv.MaCK
+                LEFT JOIN Phong p ON p.MaPhong = nv.MaPhongPhuTrach
+                WHERE nv.TrangThai = 'HOAT_DONG' AND tk.TrangThai = 'HOAT_DONG' AND nv.LoaiNhanVien IN (?)
+                ORDER BY FIELD(nv.LoaiNhanVien, 'LE_TAN', 'BAC_SI', 'BS_XET_NGHIEM', 'BS_CDHA', 'BS_NOI_SOI'), ck.MaCK, nv.HoTen""",
+                new ArrayList<>(NHOM_NHAN_VIEN.keySet())));
+        return kq;
+    }
+
+    /**
+     * Gửi đánh giá tự do bất kỳ lúc nào: chấm tiêu chí dịch vụ (cơ sở vật chất, thời gian chờ...), chấm lễ tân, bác sĩ
+     * nào cũng được (không bắt buộc chấm hết) và viết góp ý. Phải có ít nhất một mục; mỗi ngày gửi một lần để tránh spam.
+     */
+    @Transactional
+    public Map<String, Object> guiTuDo(Integer maBN, Integer maTK, DanhGiaTuDo b) {
+        if (maBN == null) {
+            throw new KhongTimThay("Tài khoản chưa có hồ sơ");
+        }
+        Map<String, Integer> dv = b == null || b.diemDichVu() == null ? Map.of() : b.diemDichVu();
+        for (Map.Entry<String, Integer> e : dv.entrySet()) {
+            if (!TIEU_CHI.containsKey(e.getKey())) {
+                throw new LoiNghiepVu("Tiêu chí đánh giá không hợp lệ: " + e.getKey());
+            }
+            if (e.getValue() != null) {
+                diem(e.getValue(), TIEU_CHI.get(e.getKey()).toLowerCase(Locale.ROOT));
+            }
+        }
+        List<DiemNhanVien> nv = new ArrayList<>();
+        java.util.Set<Integer> daCham = new java.util.HashSet<>();
+        for (DiemNhanVien d : b == null || b.nhanVien() == null ? List.<DiemNhanVien>of() : b.nhanVien()) {
+            if (d == null || d.maNV() == null || d.diem() == null) {
+                continue;
+            }
+            String ten = tv.giaTri("SELECT HoTen FROM NhanVien WHERE MaNV = ? AND TrangThai = 'HOAT_DONG' AND LoaiNhanVien IN (?)",
+                    d.maNV(), new ArrayList<>(NHOM_NHAN_VIEN.keySet()));
+            if (ten == null) {
+                throw new LoiNghiepVu("Nhân viên được đánh giá không hợp lệ");
+            }
+            if (!daCham.add(d.maNV())) {
+                throw new LoiNghiepVu("Mỗi nhân viên chỉ chấm một lần trong một đánh giá");
+            }
+            diem(d.diem(), ten);
+            String nx = d.nhanXet() == null || d.nhanXet().isBlank() ? null : d.nhanXet().strip();
+            if (nx != null && nx.length() > 500) {
+                throw new LoiNghiepVu("Nhận xét về " + ten + " tối đa 500 ký tự");
+            }
+            nv.add(new DiemNhanVien(d.maNV(), d.diem(), nx));
+        }
+        String gopY = vanBan(b == null ? null : b.gopY(), "Góp ý");
+        if (dv.values().stream().allMatch(java.util.Objects::isNull) && nv.isEmpty() && gopY == null) {
+            throw new LoiNghiepVu("Hãy chấm ít nhất một mục, một nhân viên hoặc viết góp ý");
+        }
+        LocalDateTime bayGio = dongHo.bayGio();
+        if (tv.dem("SELECT COUNT(*) FROM DanhGia WHERE MaBN = ? AND LoaiDanhGia = 'TU_DO' AND ThoiGian > ?",
+                maBN, bayGio.minusDays(1)) > 0) {
+            throw new LoiNghiepVu("Bạn đã gửi đánh giá trong 24 giờ qua, vui lòng gửi lại sau");
+        }
+        tv.capNhat("""
+                INSERT INTO DanhGia (LoaiDanhGia, MaBN, DiemThoiGianCho, DiemThuTucTiepDon, DiemThaiDoNhanVien, DiemCoSoVatChat,
+                                     DiemDichVuCLS, DiemChiPhi, NhanXetDichVu, ThoiGian)
+                VALUES ('TU_DO', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                maBN, dv.get("DiemThoiGianCho"), dv.get("DiemThuTucTiepDon"), dv.get("DiemThaiDoNhanVien"),
+                dv.get("DiemCoSoVatChat"), dv.get("DiemDichVuCLS"), dv.get("DiemChiPhi"), gopY, bayGio);
+        Integer maDG = ((Number) tv.giaTri("SELECT LAST_INSERT_ID()")).intValue();
+        for (DiemNhanVien d : nv) {
+            tv.capNhat("INSERT INTO DanhGiaNhanVien (MaDG, MaNV, Diem, NhanXet) VALUES (?, ?, ?, ?)",
+                    maDG, d.maNV(), d.diem(), d.nhanXet());
+            capNhatDiemBacSi(d.maNV());
+        }
+        nhatKy.ghi(maTK, "GUI_DANH_GIA", "DanhGia", maDG, "Đánh giá tự do: " + nv.size() + " nhân viên"
+                + (gopY != null ? ", có góp ý" : ""));
+        return Map.of("ma_dg", maDG);
+    }
+
     // ================= Tác vụ định kỳ =================
 
     /**
@@ -220,12 +323,12 @@ public class DanhGiaService {
                     UPDATE DanhGia SET TrangThaiPhanTich = 'DA_PHAN_TICH', CamXuc = ?, ChuDe = CAST(? AS JSON), MucDoNghiemTrong = ?
                     WHERE MaDG = ?""", kq.camXuc(), viet(chuDe), kq.mucDo(), d.get("MaDG"));
             if ("CAO".equals(kq.mucDo())) {
-                Map<String, Object> lk = tv.mot("""
+                Map<String, Object> lk = d.get("MaLK") == null ? null : tv.mot("""
                         SELECT lk.MaLichHen, bs.HoTen FROM LuotKham lk JOIN NhanVien bs ON bs.MaNV = lk.MaBS WHERE lk.MaLK = ?""",
                         d.get("MaLK"));
                 thongBao.vaiTro("QUAN_TRI", "CANH_BAO", "Đánh giá tiêu cực mức cao",
-                        "Lượt " + lk.get("MaLichHen") + " (" + lk.get("HoTen") + "): " + tomTat(vb), "DANH_GIA_BAO_CAO",
-                        (Integer) d.get("MaDG"));
+                        (lk == null ? "Đánh giá tự do" : "Lượt " + lk.get("MaLichHen") + " (" + lk.get("HoTen") + ")") + ": "
+                                + tomTat(vb), "DANH_GIA_BAO_CAO", (Integer) d.get("MaDG"));
             }
             n++;
         }
@@ -259,7 +362,7 @@ public class DanhGiaService {
                        COALESCE(SUM(dg.CamXuc = 'TICH_CUC'), 0) AS TichCuc, COALESCE(SUM(dg.CamXuc = 'TRUNG_TINH'), 0) AS TrungTinh,
                        COALESCE(SUM(dg.CamXuc = 'TIEU_CUC'), 0) AS TieuCuc,
                        COALESCE(SUM(dg.TrangThaiPhanTich = 'CHUA_PHAN_TICH'), 0) AS ChuaPhanTich
-                FROM DanhGia dg JOIN NhanVien bs ON bs.MaNV = dg.MaBS WHERE\s""" + dk, ts.toArray());
+                FROM DanhGia dg LEFT JOIN NhanVien bs ON bs.MaNV = dg.MaBS WHERE\s""" + dk, ts.toArray());
         kq.put("TongQuan", tong);
         kq.put("TheoThang", tv.ds("""
                 SELECT DATE_FORMAT(dg.ThoiGian, '%Y-%m') AS Thang, COUNT(*) AS SoDanhGia, ROUND(AVG(dg.DiemBacSi), 2) AS DiemBacSi,
@@ -269,7 +372,7 @@ public class DanhGiaService {
                                   + (dg.DiemThaiDoNhanVien IS NOT NULL) + (dg.DiemCoSoVatChat IS NOT NULL)
                                   + (dg.DiemDichVuCLS IS NOT NULL) + (dg.DiemChiPhi IS NOT NULL), 0)), 2) AS DiemDichVu,
                        COALESCE(SUM(dg.CamXuc = 'TICH_CUC'), 0) AS TichCuc, COALESCE(SUM(dg.CamXuc = 'TIEU_CUC'), 0) AS TieuCuc
-                FROM DanhGia dg JOIN NhanVien bs ON bs.MaNV = dg.MaBS WHERE\s""" + dk + " GROUP BY Thang ORDER BY Thang",
+                FROM DanhGia dg LEFT JOIN NhanVien bs ON bs.MaNV = dg.MaBS WHERE\s""" + dk + " GROUP BY Thang ORDER BY Thang",
                 ts.toArray()));
         // Cảm xúc của từng chủ đề lấy theo điểm tiêu chí tương ứng nếu có chấm (VD khen bác sĩ nhưng chê thời gian chờ),
         // không thì theo cảm xúc chung của đánh giá
@@ -282,15 +385,31 @@ public class DanhGiaService {
                 FROM (SELECT jt.Ma AS ChuDe, CASE WHEN\s""" + diem + " IS NULL THEN dg.CamXuc WHEN " + diem
                 + " <= 2 THEN 'TIEU_CUC' WHEN " + diem + " = 3 THEN 'TRUNG_TINH' ELSE 'TICH_CUC' END AS CamXuc"
                 + " FROM DanhGia dg JOIN JSON_TABLE(dg.ChuDe, '$[*]' COLUMNS (Ma VARCHAR(30) PATH '$')) jt"
-                + " JOIN NhanVien bs ON bs.MaNV = dg.MaBS WHERE " + dk + ") t GROUP BY t.ChuDe ORDER BY COUNT(*) DESC",
+                + " LEFT JOIN NhanVien bs ON bs.MaNV = dg.MaBS WHERE " + dk + ") t GROUP BY t.ChuDe ORDER BY COUNT(*) DESC",
                 ts.toArray());
         kq.put("ChuDe", chuDe);
+        // Xếp hạng nhân viên: điểm bác sĩ của đánh giá sau khám và điểm từng lễ tân, bác sĩ trong đánh giá tự do
+        List<Object> tsNV = new ArrayList<>(List.of(tu.atStartOfDay(), den.plusDays(1).atStartOfDay()));
+        StringBuilder dkNV = new StringBuilder();
+        if (maCK != null) {
+            dkNV.append(" AND nv.MaCK = ?");
+            tsNV.add(maCK);
+        }
+        if (maBS != null) {
+            dkNV.append(" AND nv.MaNV = ?");
+            tsNV.add(maBS);
+        }
         kq.put("BacSi", tv.ds("""
-                SELECT bs.MaNV, bs.HoTen, ck.TenCK, COUNT(*) AS SoDanhGia, ROUND(AVG(dg.DiemBacSi), 2) AS DiemBacSi,
-                       COALESCE(SUM(dg.CamXuc = 'TIEU_CUC'), 0) AS TieuCuc
-                FROM DanhGia dg JOIN NhanVien bs ON bs.MaNV = dg.MaBS LEFT JOIN ChuyenKhoa ck ON ck.MaCK = bs.MaCK
-                WHERE\s""" + dk + " GROUP BY bs.MaNV, bs.HoTen, ck.TenCK ORDER BY DiemBacSi DESC, SoDanhGia DESC",
-                ts.toArray()));
+                SELECT nv.MaNV, nv.HoTen, nv.LoaiNhanVien, ck.TenCK, COUNT(*) AS SoDanhGia, ROUND(AVG(x.Diem), 2) AS DiemBacSi,
+                       COALESCE(SUM(x.TieuCuc), 0) AS TieuCuc
+                FROM (SELECT dg.MaBS AS MaNV, dg.DiemBacSi AS Diem, dg.CamXuc = 'TIEU_CUC' AS TieuCuc, dg.ThoiGian
+                      FROM DanhGia dg WHERE dg.DiemBacSi IS NOT NULL
+                      UNION ALL
+                      SELECT d.MaNV, d.Diem, d.Diem <= 2, dg.ThoiGian FROM DanhGiaNhanVien d JOIN DanhGia dg ON dg.MaDG = d.MaDG) x
+                JOIN NhanVien nv ON nv.MaNV = x.MaNV LEFT JOIN ChuyenKhoa ck ON ck.MaCK = nv.MaCK
+                WHERE x.ThoiGian >= ? AND x.ThoiGian < ?""" + dkNV
+                + " GROUP BY nv.MaNV, nv.HoTen, nv.LoaiNhanVien, ck.TenCK ORDER BY DiemBacSi DESC, SoDanhGia DESC",
+                tsNV.toArray()));
         kq.put("TongHop", tongHop(tong, chuDe));
         return kq;
     }
@@ -310,7 +429,7 @@ public class DanhGiaService {
         }
         List<Map<String, Object>> ds = tv.ds("""
                 SELECT dg.*, lk.MaLichHen, lk.NgayKham, bs.HoTen AS BacSi, ck.TenCK, bn.HoTen AS BenhNhan
-                FROM DanhGia dg JOIN LuotKham lk ON lk.MaLK = dg.MaLK JOIN NhanVien bs ON bs.MaNV = dg.MaBS
+                FROM DanhGia dg LEFT JOIN LuotKham lk ON lk.MaLK = dg.MaLK LEFT JOIN NhanVien bs ON bs.MaNV = dg.MaBS
                 LEFT JOIN ChuyenKhoa ck ON ck.MaCK = bs.MaCK JOIN BenhNhan bn ON bn.MaBN = dg.MaBN
                 WHERE\s""" + dk + " ORDER BY dg.ThoiGian DESC LIMIT 500", ts.toArray());
         ds.forEach(this::kemAnh);
@@ -354,12 +473,19 @@ public class DanhGiaService {
 
     private void capNhatDiemBacSi(Integer maBS) {
         tv.capNhat("""
-                UPDATE NhanVien SET DiemDanhGiaTB = (SELECT ROUND(AVG(DiemBacSi), 2) FROM DanhGia WHERE MaBS = ?),
-                       SoLuotDanhGia = (SELECT COUNT(DiemBacSi) FROM DanhGia WHERE MaBS = ?)
-                WHERE MaNV = ?""", maBS, maBS, maBS);
+                UPDATE NhanVien nv JOIN (
+                    SELECT ROUND(AVG(d), 2) AS tb, COUNT(*) AS so FROM (
+                        SELECT DiemBacSi AS d FROM DanhGia WHERE MaBS = ? AND DiemBacSi IS NOT NULL
+                        UNION ALL SELECT Diem FROM DanhGiaNhanVien WHERE MaNV = ?) x) t
+                SET nv.DiemDanhGiaTB = t.tb, nv.SoLuotDanhGia = t.so
+                WHERE nv.MaNV = ?""", maBS, maBS, maBS);
     }
 
     private void kemAnh(Map<String, Object> dg) {
+        dg.put("NhanVien", tv.ds("""
+                SELECT d.MaNV, d.Diem, d.NhanXet, nv.HoTen, nv.LoaiNhanVien, ck.TenCK FROM DanhGiaNhanVien d
+                JOIN NhanVien nv ON nv.MaNV = d.MaNV LEFT JOIN ChuyenKhoa ck ON ck.MaCK = nv.MaCK
+                WHERE d.MaDG = ? ORDER BY FIELD(nv.LoaiNhanVien, 'LE_TAN', 'BAC_SI'), nv.HoTen""", dg.get("MaDG")));
         dg.put("Anh", tv.ds("SELECT MaTep, DuongDan, TenTep FROM TepDinhKem WHERE MaDG = ? ORDER BY MaTep", dg.get("MaDG")));
         Object cd = dg.get("ChuDe");
         if (cd != null) {
@@ -390,12 +516,16 @@ public class DanhGiaService {
         StringBuilder dk = new StringBuilder("dg.ThoiGian >= ? AND dg.ThoiGian < ?");
         ts.add(tu.atStartOfDay());
         ts.add(den.plusDays(1).atStartOfDay());
+        // Lọc theo chuyên khoa / bác sĩ: bác sĩ của lượt khám, hoặc nhân viên được chấm trong đánh giá tự do
         if (maCK != null) {
-            dk.append(" AND bs.MaCK = ?");
+            dk.append(" AND (bs.MaCK = ? OR EXISTS (SELECT 1 FROM DanhGiaNhanVien x JOIN NhanVien n ON n.MaNV = x.MaNV"
+                    + " WHERE x.MaDG = dg.MaDG AND n.MaCK = ?))");
+            ts.add(maCK);
             ts.add(maCK);
         }
         if (maBS != null) {
-            dk.append(" AND dg.MaBS = ?");
+            dk.append(" AND (dg.MaBS = ? OR EXISTS (SELECT 1 FROM DanhGiaNhanVien x WHERE x.MaDG = dg.MaDG AND x.MaNV = ?))");
+            ts.add(maBS);
             ts.add(maBS);
         }
         return dk.toString();

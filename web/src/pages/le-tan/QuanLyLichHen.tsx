@@ -7,8 +7,9 @@ import dayjs, { type Dayjs } from 'dayjs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import BangThichUng from '@/components/BangThichUng'
+import { NutTheBhyt, tachThe } from '@/components/TheBhyt'
 import { usePhien } from '@/lib/auth'
-import { api, LoiApi, type BacSi, type LichHen, type TheBHYT, type TrangThaiLichHen } from '@/lib/api'
+import { api, LoiApi, type BacSi, type LichHen, type LienKetChoLeTan, type TheBHYT, type TrangThaiLichHen } from '@/lib/api'
 import { gioKham, SU_KIEN_SO_CHO, TEN_KENH, thuNgay, TRANG_THAI_LICH_HEN, tuoi } from '@/lib/hangSo'
 
 const LY_DO_LE_TAN = ['Bác sĩ nghỉ đột xuất', 'Bệnh nhân yêu cầu hủy qua điện thoại', 'Thông tin đặt lịch không hợp lệ', 'Khác']
@@ -50,6 +51,8 @@ export default function QuanLyLichHen() {
   const [formHuy] = Form.useForm<{ ly_do: string; khac?: string }>()
   const [lhCheckIn, setLhCheckIn] = useState<LichHen | null>(null)
   const [dsThe, setDsThe] = useState<TheBHYT[]>([])
+  // UC1.7 5b: liên kết người thân chờ lễ tân xác nhận (hồ sơ không có SĐT nhận OTP)
+  const [lienKet, setLienKet] = useState<LienKetChoLeTan[]>([])
   const [formCheckIn] = Form.useForm<{ chon_the: string; ma_the?: string }>()
   const [ketQua, setKetQua] = useState<KetQuaCheckIn | null>(null)
   const [dangGui, setDangGui] = useState(false)
@@ -111,7 +114,9 @@ export default function QuanLyLichHen() {
   const moCheckIn = async (lh: LichHen) => {
     formCheckIn.resetFields()
     setDsThe([])
+    setLienKet([])
     setLhCheckIn(lh)
+    api.lienKetChoLeTan(lh.MaBN).then(setLienKet).catch(() => {})
     try {
       const the = await api.theBhyt(lh.MaBN)
       setDsThe(the)
@@ -342,13 +347,28 @@ export default function QuanLyLichHen() {
             { key: 'lh', label: 'Lịch hẹn', children: `${lhCheckIn.GioBatDau} · ${lhCheckIn.BacSi} · phòng ${lhCheckIn.MaSoPhong}` },
           ]} />
         )}
+        {lhCheckIn && lienKet.map((l) => (
+          <Alert key={l.MaTK} type="info" showIcon style={{ marginBottom: 12 }}
+            title={`${l.NguoiQuanLy} xin quản lý hồ sơ này (quan hệ: ${l.QuanHe})`}
+            description="Đối chiếu giấy tờ của người khám rồi xác nhận để tài khoản đó đặt lịch, xem hồ sơ thay người khám."
+            action={<Button size="small" type="primary" onClick={async () => {
+              try {
+                await api.xacNhanLienKet(lhCheckIn.MaBN, l.MaTK)
+                message.success('Đã xác nhận liên kết người thân')
+                setLienKet((ds) => ds.filter((x) => x.MaTK !== l.MaTK))
+              } catch (e) {
+                message.error(e instanceof LoiApi ? e.message : 'Không xác nhận được')
+              }
+            }}>Xác nhận</Button>} />
+        ))}
         <Form form={formCheckIn} layout="vertical" onFinish={checkIn} initialValues={{ chon_the: 'KHONG' }}>
           <Form.Item name="chon_the" label="Bảo hiểm y tế">
             <Radio.Group style={{ display: 'flex', flexDirection: 'column', gap: 6 }} options={[
               ...dsThe.map((t) => ({
                 value: t.MaThe,
-                label: <span>Thẻ {t.MaThe} · {t.MucHuong}% · hết hạn {dayjs(t.NgayHetHan).format('DD/MM/YYYY')}
-                  {dayjs(t.NgayHetHan).isBefore(dayjs(), 'day') && <Tag color="red" style={{ marginInlineStart: 6 }}>Hết hạn</Tag>}</span>,
+                label: <span>Thẻ <span style={{ fontFamily: 'monospace' }}>{tachThe(t.MaThe).join(' ')}</span> · mức {t.MaMucHuong}
+                  ({t.MienCungChiTra ? '100%, có giấy miễn cùng chi trả' : `${t.MucHuong}%`}) · hết hạn {dayjs(t.NgayHetHan).format('DD/MM/YYYY')}
+                  {!t.ConHan && <Tag color="red" style={{ marginInlineStart: 6 }}>Hết hạn</Tag>}</span>,
               })),
               { value: 'NHAP', label: 'Nhập mã thẻ khác' },
               { value: 'KHONG', label: 'Không dùng BHYT' },
@@ -361,6 +381,12 @@ export default function QuanLyLichHen() {
               </Form.Item>
             )}
           </Form.Item>
+          {lhCheckIn && (
+            <Flex align="center" gap={8} wrap>
+              <NutTheBhyt maBn={lhCheckIn.MaBN} hoTen={lhCheckIn.BenhNhan} onXong={() => moCheckIn(lhCheckIn)} />
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>Bệnh nhân mang thẻ mới: nhập thẻ rồi chọn ở trên</Typography.Text>
+            </Flex>
+          )}
         </Form>
       </Modal>
 
@@ -370,7 +396,10 @@ export default function QuanLyLichHen() {
             subTitle={<>
               {ketQua.lh.BenhNhan} · {ketQua.lh.BacSi} · phòng {ketQua.lh.MaSoPhong} – {ketQua.lh.TenPhong}
               <div style={{ marginTop: 8 }}>
-                {ketQua.TrangThaiBHYT === 'HOP_LE' && <Tag color="green">BHYT hợp lệ, mức hưởng {ketQua.MucHuong}%</Tag>}
+                {ketQua.TrangThaiBHYT === 'HOP_LE' && (
+                  <Alert type="success" showIcon style={{ textAlign: 'left' }} title={`BHYT hợp lệ, quỹ trả ${ketQua.MucHuong}%`}
+                    description={ketQua.ly_do_bhyt ?? undefined} />
+                )}
                 {ketQua.TrangThaiBHYT === 'KHONG_HOP_LE' && (
                   <Alert type="error" showIcon style={{ textAlign: 'left' }} title="Thẻ BHYT không hợp lệ, khám dịch vụ"
                     description={ketQua.ly_do_bhyt ? `Lý do: ${ketQua.ly_do_bhyt}` : undefined} />

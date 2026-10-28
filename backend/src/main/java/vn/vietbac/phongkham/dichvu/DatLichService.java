@@ -125,7 +125,8 @@ public class DatLichService {
     }
 
     /** Bộ lọc danh sách lịch hẹn; null = không lọc theo tiêu chí đó. */
-    public record LocLichHen(Integer maBN, Integer maBS, LocalDate ngay, List<String> trangThai, String tuKhoa,
+    /** dsMaBN: lịch của các hồ sơ này (bệnh nhân và người thân, UC1.7); null = mọi bệnh nhân. */
+    public record LocLichHen(List<Integer> dsMaBN, Integer maBS, LocalDate ngay, List<String> trangThai, String tuKhoa,
                              boolean moiNhatTruoc) {
     }
 
@@ -134,9 +135,9 @@ public class DatLichService {
     public List<Map<String, Object>> dsLichHen(LocLichHen loc) {
         List<String> dk = new ArrayList<>(List.of("1 = 1"));
         List<Object> ts = new ArrayList<>();
-        if (loc.maBN() != null) {
-            dk.add("lk.MaBN = ?");
-            ts.add(loc.maBN());
+        if (loc.dsMaBN() != null) {
+            dk.add("lk.MaBN IN (?)");
+            ts.add(loc.dsMaBN());
         }
         if (loc.maBS() != null) {
             dk.add("lk.MaBS = ?");

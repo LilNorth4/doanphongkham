@@ -127,6 +127,7 @@ export default function AppLayout() {
       // Bệnh nhân: mỗi chức năng là một mục riêng trên thanh, đặt lịch là nút nổi bật bên phải
       { khoa: 'lich-hen', ten: 'Lịch hẹn', moTa: '', icon: <ScheduleOutlined />, cot: [{ muc: loc([
         co('LICH_HEN.DAT') && { den: '/lich-hen-cua-toi', ten: 'Lịch hẹn của tôi', moTa: 'Xem, đổi, hủy lịch và danh sách chờ', icon: <ScheduleOutlined /> },
+        co('LICH_HEN.DAT') && { den: '/nguoi-than', ten: 'Người thân', moTa: 'Đặt lịch, xem hồ sơ cho con, bố mẹ', icon: <TeamOutlined /> },
       ]) }] },
       { khoa: 'ho-so-suc-khoe', ten: 'Hồ sơ sức khỏe', moTa: '', icon: <FileProtectOutlined />, cot: [{ muc: loc([
         co('HO_SO.XEM_CUA_MINH') && { den: '/ho-so-suc-khoe', ten: 'Hồ sơ sức khỏe', moTa: 'Chẩn đoán, đơn thuốc, kết quả xét nghiệm', icon: <FileProtectOutlined /> },
@@ -135,7 +136,7 @@ export default function AppLayout() {
         co('HO_SO.XEM_CUA_MINH') && { den: '/hoa-don', ten: 'Hóa đơn', moTa: 'Hóa đơn, thanh toán MoMo', icon: <DollarOutlined /> },
       ]) }] },
       { khoa: 'phan-hoi', ten: 'Đánh giá & góp ý', moTa: 'Ý kiến của bạn sau mỗi lượt khám', icon: <StarOutlined />, cot: [{ muc: loc([
-        danhGia && { den: '/danh-gia', ten: 'Đánh giá', moTa: 'Chấm điểm bác sĩ, dịch vụ sau khám', icon: <StarOutlined />, so: soDanhGia },
+        danhGia && { den: '/danh-gia', ten: 'Đánh giá', moTa: 'Cơ sở vật chất, dịch vụ, lễ tân, bác sĩ', icon: <StarOutlined />, so: soDanhGia },
         danhGia && { den: '/gop-y', ten: 'Góp ý – Khiếu nại', moTa: 'Gửi và theo dõi phản hồi', icon: <CommentOutlined /> },
       ]) }] },
       // Nhân viên

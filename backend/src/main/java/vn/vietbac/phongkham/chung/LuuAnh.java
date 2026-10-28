@@ -22,6 +22,8 @@ import org.springframework.web.multipart.MultipartFile;
 public class LuuAnh {
 
     public static final String DUONG_DAN_WEB = "/api/tep/";
+    /** Thư mục con phục vụ công khai; còn lại (ket-qua-cls, gop-y) chỉ đọc qua /api/tep-kq có chữ ký. */
+    public static final java.util.List<String> CONG_KHAI = java.util.List.of("anh-dai-dien", "chuyen-khoa", "mat-bang", "danh-gia");
     private static final long TOI_DA = 2L * 1024 * 1024;
 
     private final Path thuMuc;
@@ -70,6 +72,15 @@ public class LuuAnh {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /** File trên đĩa ứng với đường dẫn web đã lưu, null nếu không phải file do hệ thống lưu hoặc đã mất. */
+    public Path tepTrenDia(String duongDanWeb) {
+        if (duongDanWeb == null || !duongDanWeb.startsWith(DUONG_DAN_WEB)) {
+            return null;
+        }
+        Path tep = thuMuc.resolve(duongDanWeb.substring(DUONG_DAN_WEB.length())).normalize();
+        return tep.startsWith(thuMuc) && Files.isRegularFile(tep) ? tep : null;
     }
 
     /** Xóa file theo đường dẫn web đã lưu; bỏ qua nếu không phải file do hệ thống lưu. */

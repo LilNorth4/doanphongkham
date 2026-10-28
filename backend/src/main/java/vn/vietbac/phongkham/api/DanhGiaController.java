@@ -58,6 +58,31 @@ public class DanhGiaController {
         return danhGia.gui(maLK, benhNhan(nd), nd.maTK(), b, anh);
     }
 
+    /** Đánh giá tự do: tiêu chí dịch vụ và danh sách lễ tân, bác sĩ để chấm. */
+    @GetMapping("/tu-do")
+    @CanQuyen(GUI)
+    public Map<String, Object> bieuMauTuDo() {
+        return danhGia.bieuMauTuDo();
+    }
+
+    public record DiemNV(@com.fasterxml.jackson.annotation.JsonProperty("ma_nv") Integer maNV, Integer diem,
+                         @com.fasterxml.jackson.annotation.JsonProperty("nhan_xet") String nhanXet) {
+    }
+
+    public record TuDo(@com.fasterxml.jackson.annotation.JsonProperty("diem_dich_vu") Map<String, Integer> diemDichVu,
+                       @com.fasterxml.jackson.annotation.JsonProperty("nhan_vien") List<DiemNV> nhanVien,
+                       @com.fasterxml.jackson.annotation.JsonProperty("gop_y") String gopY) {
+    }
+
+    /** Gửi đánh giá tự do bất kỳ lúc nào (không cần sau khám): chấm mục nào cũng được, mỗi ngày một lần. */
+    @PostMapping("/tu-do")
+    @CanQuyen(GUI)
+    public Map<String, Object> guiTuDo(@org.springframework.web.bind.annotation.RequestBody TuDo b, NguoiDung nd) {
+        return danhGia.guiTuDo(benhNhan(nd), nd.maTK(), new DanhGiaService.DanhGiaTuDo(b.diemDichVu(),
+                b.nhanVien() == null ? List.of() : b.nhanVien().stream()
+                        .map(n -> new DanhGiaService.DiemNhanVien(n.maNV(), n.diem(), n.nhanXet())).toList(), b.gopY()));
+    }
+
     @GetMapping("/bao-cao")
     @CanQuyen(XEM)
     public Map<String, Object> baoCao(

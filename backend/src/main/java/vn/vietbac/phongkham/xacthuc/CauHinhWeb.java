@@ -47,10 +47,13 @@ public class CauHinhWeb implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Tên file ngẫu nhiên, không đổi nội dung sau khi lưu nên cho trình duyệt nhớ lâu
-        registry.addResourceHandler(LuuAnh.DUONG_DAN_WEB + "**")
-                .addResourceLocations(luuAnh.thuMuc().toUri().toString())
-                .setCachePeriod(30 * 24 * 3600);
+        // Chỉ ảnh công khai (ảnh đại diện, chuyên khoa, sơ đồ, ảnh đánh giá) phục vụ thẳng; tên file ngẫu nhiên, không đổi
+        // nội dung nên cho trình duyệt nhớ lâu. Kết quả cận lâm sàng và tệp góp ý chỉ qua /api/tep-kq có chữ ký (TepBaoMat).
+        for (String thuMucCon : LuuAnh.CONG_KHAI) {
+            registry.addResourceHandler(LuuAnh.DUONG_DAN_WEB + thuMucCon + "/**")
+                    .addResourceLocations(luuAnh.thuMuc().resolve(thuMucCon).toUri().toString())
+                    .setCachePeriod(30 * 24 * 3600);
+        }
 
         // Giao diện đã build (web/dist) chạy chung cổng với API: mở http://localhost:8080 là dùng được.
         // Đường dẫn của React Router (VD /bac-si/kham/19) không phải file nên trả index.html; /api/** không trả.

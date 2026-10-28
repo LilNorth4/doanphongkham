@@ -1,6 +1,7 @@
-import { DeleteOutlined, FilePdfOutlined } from '@ant-design/icons'
-import { Button, Descriptions, Empty, Flex, Image, List, Popconfirm, Table, Tag, Typography } from 'antd'
+import { DeleteOutlined, FilePdfOutlined, ReloadOutlined } from '@ant-design/icons'
+import { Alert, Button, Descriptions, Empty, Flex, Image, List, Popconfirm, Table, Tag, Typography } from 'antd'
 import dayjs from 'dayjs'
+import { useState } from 'react'
 import BangThichUng from '@/components/BangThichUng'
 import type { HoSoBenhAn, LanKham, PhieuChiDinh, TepKetQua } from '@/lib/api'
 import { TEN_LOAI_DV, thuNgay, TRANG_THAI_PHIEU_CLS } from '@/lib/hangSo'
@@ -8,18 +9,28 @@ import { TEN_LOAI_DV, thuNgay, TRANG_THAI_PHIEU_CLS } from '@/lib/hangSo'
 const MAU_DANH_GIA = { BINH_THUONG: undefined, CAO: 'red', THAP: 'orange' } as const
 const TEN_DANH_GIA = { BINH_THUONG: '', CAO: '↑ Cao', THAP: '↓ Thấp' } as const
 
-/** Ảnh (xem phóng to) và PDF đính kèm kết quả cận lâm sàng; có onXoa thì hiện nút xóa. */
+/**
+ * Ảnh (xem phóng to) và PDF đính kèm kết quả cận lâm sàng; có onXoa thì hiện nút xóa. Đường dẫn có chữ ký hết hạn sau
+ * 2 giờ: ảnh không tải được thì báo lỗi và cho tải lại để lấy đường dẫn mới (UC11.2 4a).
+ */
 export function DsTep({ ds, onXoa }: { ds: TepKetQua[]; onXoa?: (t: TepKetQua) => void }) {
+  const [loi, setLoi] = useState(false)
   const anh = ds.filter((t) => t.LoaiTep !== 'PDF')
   const pdf = ds.filter((t) => t.LoaiTep === 'PDF')
   return (
     <Flex vertical gap={8}>
+      {loi && (
+        <Alert type="warning" showIcon title="Không tải được ảnh kết quả (đường dẫn có thể đã hết hạn)"
+          action={<Button size="small" icon={<ReloadOutlined />} onClick={() => window.location.reload()}>Tải lại</Button>} />
+      )}
       {anh.length > 0 && (
         <Image.PreviewGroup>
           <Flex gap={8} wrap>
             {anh.map((t) => (
               <div key={t.MaTep} style={{ position: 'relative' }}>
-                <Image src={t.DuongDan} alt={t.MoTa ?? t.TenTep} width={104} height={104} style={{ objectFit: 'cover', borderRadius: 6 }} />
+                <Image src={t.DuongDan} alt={t.MoTa ?? t.TenTep} width={104} height={104} style={{ objectFit: 'cover', borderRadius: 6 }}
+                  onError={() => setLoi(true)} />
+                {t.MoTa && <div style={{ width: 104, fontSize: 11, color: '#52615D' }}>{t.MoTa}</div>}
                 {onXoa && (
                   <Popconfirm title="Xóa ảnh này?" okText="Xóa" cancelText="Đóng" onConfirm={() => onXoa(t)}>
                     <Button size="small" danger icon={<DeleteOutlined />} aria-label={`Xóa ${t.TenTep}`}
@@ -57,6 +68,7 @@ export function DsKetQuaCls({ ds, anTrangThai }: { ds: PhieuChiDinh[]; anTrangTh
             <Typography.Text strong>{p.TenDV}</Typography.Text>
             <Tag>{TEN_LOAI_DV[p.LoaiDV]}</Tag>
             {!anTrangThai && <Tag color={TRANG_THAI_PHIEU_CLS[p.TrangThai].mau}>{TRANG_THAI_PHIEU_CLS[p.TrangThai].ten}</Tag>}
+            {(p.PhienBan ?? 1) > 1 && <Tag color="gold">Đã đính chính</Tag>}
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>Phòng {p.MaSoPhong}</Typography.Text>
           </Flex>
           {p.TrangThai === 'DA_HUY' && p.LyDoHuy && <Typography.Text type="secondary">Lý do hủy: {p.LyDoHuy}</Typography.Text>}
